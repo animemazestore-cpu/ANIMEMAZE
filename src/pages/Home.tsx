@@ -16,14 +16,7 @@ export const Home: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      if (isMock) {
-        setCategories(getLocalCategories().length > 0 ? getLocalCategories().slice(0, 6) : MOCK_CATEGORIES);
-        setFeaturedProducts(getLocalProducts().filter(p => p.featured).length > 0 ? getLocalProducts().filter(p => p.featured).slice(0, 4) : MOCK_PRODUCTS);
-        return;
-      }
-
-      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 4000): Promise<T> => {
+      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 5000): Promise<T> => {
         return Promise.race([
           Promise.resolve(promise),
           new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
@@ -31,10 +24,10 @@ export const Home: React.FC = () => {
       };
 
       try {
-        // Fetch categories
+        // Always try Supabase first
         const { data: dbCategories, error: catError } = await withTimeout(
           supabase.from('categories').select('*').limit(6),
-          4000
+          5000
         );
         if (catError) throw catError;
 
@@ -52,7 +45,7 @@ export const Home: React.FC = () => {
         // Fetch featured products
         const { data: dbProducts, error: prodError } = await withTimeout(
           supabase.from('products').select('*').eq('featured', true).limit(4),
-          4000
+          5000
         );
         if (prodError) throw prodError;
 
@@ -73,6 +66,7 @@ export const Home: React.FC = () => {
         setFeaturedProducts(mergedProds.length > 0 ? mergedProds.slice(0, 4) : MOCK_PRODUCTS);
       } catch (err) {
         console.error('Error fetching homepage data:', err);
+        // Fallback to local/mock data
         const localCats = getLocalCategories();
         const localProds = getLocalProducts().filter(p => p.featured);
         setCategories(localCats.length > 0 ? localCats.slice(0, 6) : MOCK_CATEGORIES);

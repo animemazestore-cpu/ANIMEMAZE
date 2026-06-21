@@ -64,21 +64,6 @@ export const ProductDetail: React.FC = () => {
           return;
         }
 
-        const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-        if (isMock) {
-          // Fallback to default mock products in mock mode
-          const mockProd = MOCK_PRODUCTS.find(p => p.slug === slug || sanitizeSlug(p.slug, p.name) === slug);
-          if (mockProd) {
-            setProduct(mockProd);
-            setActiveImage(mockProd.main_image_url);
-            setRelatedProducts(MOCK_PRODUCTS.filter(p => p.slug !== slug && sanitizeSlug(p.slug, p.name) !== slug).slice(0, 4));
-          } else {
-            setProduct(null);
-          }
-          setLoading(false);
-          return;
-        }
-
         // 2. Fetch product from Supabase
         let dbProduct = null;
         try {

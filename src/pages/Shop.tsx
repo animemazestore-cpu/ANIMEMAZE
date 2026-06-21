@@ -32,14 +32,7 @@ export const Shop: React.FC = () => {
 
   useEffect(() => {
     const fetchShopData = async () => {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      if (isMock) {
-        setCategories(getLocalCategories().length > 0 ? getLocalCategories() : MOCK_CATEGORIES);
-        setProducts(getLocalProducts().length > 0 ? getLocalProducts() : MOCK_PRODUCTS);
-        return;
-      }
-
-      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 4000): Promise<T> => {
+      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 5000): Promise<T> => {
         return Promise.race([
           Promise.resolve(promise),
           new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
@@ -47,10 +40,10 @@ export const Shop: React.FC = () => {
       };
 
       try {
-        // Fetch categories from DB
+        // Always try Supabase first
         const { data: dbCategories, error: catError } = await withTimeout(
           supabase.from('categories').select('*'),
-          4000
+          5000
         );
         if (catError) throw catError;
 
@@ -71,7 +64,7 @@ export const Shop: React.FC = () => {
             *,
             category:categories (*)
           `),
-          4000
+          5000
         );
         if (prodError) throw prodError;
 
@@ -92,6 +85,7 @@ export const Shop: React.FC = () => {
         setProducts(mergedProds.length > 0 ? mergedProds : MOCK_PRODUCTS);
       } catch (err) {
         console.error('Error fetching shop details:', err);
+        // Fallback to local/mock data
         const localCats = getLocalCategories();
         const localProds = getLocalProducts();
         setCategories(localCats.length > 0 ? localCats : MOCK_CATEGORIES);
