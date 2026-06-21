@@ -1,0 +1,291 @@
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
+import { useCartStore } from '../store/useCartStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { Button } from '../components/common/Button';
+
+export const Cart: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { items, updateQuantity, removeItem, clearCart, getTotalAmount, getTotalItems } = useCartStore();
+
+  const [couponCode, setCouponCode] = React.useState('');
+  const [appliedCoupon, setAppliedCoupon] = React.useState<any>(() => {
+    return JSON.parse(localStorage.getItem('animemaze_applied_coupon') || 'null');
+  });
+  const [couponError, setCouponError] = React.useState('');
+
+  const subtotal = getTotalAmount();
+
+  // Auto-remove coupon if subtotal falls below minimum order amount
+  React.useEffect(() => {
+    if (appliedCoupon && appliedCoupon.minOrder && subtotal < appliedCoupon.minOrder) {
+      setAppliedCoupon(null);
+      localStorage.removeItem('animemaze_applied_coupon');
+      setCouponError(`Coupon removed: requires a minimum order of ₹${appliedCoupon.minOrder}`);
+    }
+  }, [subtotal, appliedCoupon]);
+
+  const handleApplyCoupon = () => {
+    setCouponError('');
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+
+    const localCoupons = JSON.parse(localStorage.getItem('animemaze_coupons') || '[]');
+    const defaultCoupons = [
+      { code: 'ANIME20', type: 'PERCENT', value: 20, minOrder: 0, active: true },
+      { code: 'NEO10', type: 'PERCENT', value: 10, minOrder: 0, active: true },
+      { code: 'SHINOBI50', type: 'PERCENT', value: 50, minOrder: 0, active: true },
+      { code: 'FREE99', type: 'FIXED', value: 99, minOrder: 0, active: true }
+    ];
+
+    const allCoupons = [...defaultCoupons];
+    localCoupons.forEach((c: any) => {
+      if (!allCoupons.some(ac => ac.code === c.code)) {
+        allCoupons.push(c);
+      } else {
+        const idx = allCoupons.findIndex(ac => ac.code === c.code);
+        if (idx >= 0) allCoupons[idx] = { ...allCoupons[idx], ...c };
+      }
+    });
+
+    const coupon = allCoupons.find(c => c.code === code);
+    if (!coupon) {
+      setCouponError('Invalid coupon code!');
+      setAppliedCoupon(null);
+      localStorage.removeItem('animemaze_applied_coupon');
+      return;
+    }
+
+    if (coupon.active === false) {
+      setCouponError('This coupon is currently disabled.');
+      setAppliedCoupon(null);
+      localStorage.removeItem('animemaze_applied_coupon');
+      return;
+    }
+
+    if (coupon.minOrder && subtotal < coupon.minOrder) {
+      setCouponError(`This coupon requires a minimum order of ₹${coupon.minOrder}`);
+      setAppliedCoupon(null);
+      localStorage.removeItem('animemaze_applied_coupon');
+      return;
+    }
+
+    setAppliedCoupon(coupon);
+    localStorage.setItem('animemaze_applied_coupon', JSON.stringify(coupon));
+    setCouponCode('');
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    localStorage.removeItem('animemaze_applied_coupon');
+    setCouponError('');
+  };
+
+  let discountAmount = 0;
+  if (appliedCoupon && appliedCoupon.active !== false && (!appliedCoupon.minOrder || subtotal >= appliedCoupon.minOrder)) {
+    if (appliedCoupon.type === 'PERCENT') {
+      discountAmount = Math.round((subtotal * appliedCoupon.value) / 100);
+    } else if (appliedCoupon.type === 'FIXED') {
+      discountAmount = Math.min(subtotal, appliedCoupon.value);
+    }
+  }
+
+  const shippingCharge = subtotal >= 999 ? 0 : 99;
+  const total = Math.max(0, subtotal - discountAmount) + shippingCharge;
+
+  const handleCheckoutClick = () => {
+    if (!user) {
+      navigate('/auth?redirect=/checkout');
+    } else {
+      navigate('/checkout');
+    }
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-20 text-center">
+        <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+          <ShoppingBag className="h-8 w-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Your Cart is Empty</h2>
+        <p className="text-gray-400 mb-8 text-sm">Add some epic anime figures, hoodies, keychains or decorative display props to your collection!</p>
+        <Link to="/shop">
+          <Button fullWidth>Browse Merch</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h1 className="text-3xl font-extrabold text-white mb-8">Shopping Cart</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Cart Items List */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="flex justify-between items-center pb-3 border-b border-white/5">
+            <span className="text-sm font-semibold text-gray-400">{getTotalItems()} Items</span>
+            <button
+              onClick={clearCart}
+              className="text-xs text-danger hover:underline font-semibold"
+            >
+              Clear Cart
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {items.map(({ product, quantity, selectedVariant }) => (
+              <div
+                key={`${product.id}-${selectedVariant || ''}`}
+                className="glass-card p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
+              >
+                {/* Product Image */}
+                <div className="w-20 h-24 bg-surface rounded-lg overflow-hidden flex-shrink-0">
+                  <img
+                    src={product.main_image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="flex-grow text-center sm:text-left space-y-1">
+                  <h3 className="font-bold text-white hover:text-primary-light transition-colors line-clamp-1">
+                    <Link to={`/product/${product.slug}`}>{product.name}</Link>
+                  </h3>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
+                    <span className="text-gray-500">Price: ₹{product.price}</span>
+                    {selectedVariant && (
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light font-bold text-[10px]">
+                        Size: {selectedVariant}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quantity Controls */}
+                <div className="flex items-center border border-white/10 rounded-lg bg-[#0B0F19]">
+                  <button
+                    onClick={() => updateQuantity(product.id, quantity - 1, selectedVariant)}
+                    className="px-2.5 py-1 text-gray-400 hover:text-white"
+                  >
+                    -
+                  </button>
+                  <span className="px-3 text-xs font-bold text-white">{quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(product.id, quantity + 1, selectedVariant)}
+                    className="px-2.5 py-1 text-gray-400 hover:text-white"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Subtotal & Delete */}
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-4 w-full sm:w-auto">
+                  <span className="font-extrabold text-sm text-white">₹{product.price * quantity}</span>
+                  <button
+                    onClick={() => removeItem(product.id, selectedVariant)}
+                    className="text-gray-500 hover:text-danger transition-colors p-1"
+                  >
+                    <Trash2 className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Order Summary sidebar */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-6">
+            <h2 className="text-lg font-bold text-white">Order Summary</h2>
+
+            <div className="space-y-3 text-sm text-gray-400">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span className="text-white font-semibold">₹{subtotal}</span>
+              </div>
+              
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-400 font-semibold">
+                  <span>Discount ({appliedCoupon?.code}):</span>
+                  <span>-₹{discountAmount}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <span>Shipping:</span>
+                {shippingCharge === 0 ? (
+                  <span className="text-success font-bold">FREE</span>
+                ) : (
+                  <span className="text-white font-semibold">₹{shippingCharge}</span>
+                )}
+              </div>
+
+              {shippingCharge > 0 && (
+                <div className="text-[10px] text-primary-light italic leading-tight">
+                  Add ₹{999 - subtotal} more to unlock FREE shipping!
+                </div>
+              )}
+            </div>
+
+            {/* Coupon input */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Apply Promo Coupon</label>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-sm text-emerald-400 font-medium">
+                  <div className="flex flex-col">
+                    <span className="font-extrabold">{appliedCoupon.code} Applied!</span>
+                    <span className="text-[10px] text-emerald-500/80">
+                      {appliedCoupon.type === 'PERCENT' ? `${appliedCoupon.value}% off` : `₹${appliedCoupon.value} off`}
+                    </span>
+                  </div>
+                  <button onClick={handleRemoveCoupon} className="text-xs text-danger font-bold uppercase hover:underline">
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ANIME20, NEO10..."
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-grow bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-primary/50 text-white placeholder-gray-500 uppercase"
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    className="px-4 bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold rounded-xl text-white transition-all"
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="text-[10px] text-danger font-semibold">{couponError}</p>}
+            </div>
+
+            <div className="border-t border-white/5 pt-4 flex justify-between text-base font-extrabold text-white">
+              <span>Total Amount:</span>
+              <span className="text-secondary-light">₹{total}</span>
+            </div>
+
+            <Button fullWidth size="lg" onClick={handleCheckoutClick}>
+              <span>Proceed to Checkout</span>
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Safety badge */}
+          <div className="flex items-center space-x-3 p-4 bg-white/2 rounded-xl border border-white/5">
+            <ShieldCheck className="h-5 w-5 text-success flex-shrink-0" />
+            <p className="text-[10px] text-gray-500 leading-normal">
+              Safe & secure ordering. Manual UPI screenshot review ensures error-free processing before bank settlements.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
