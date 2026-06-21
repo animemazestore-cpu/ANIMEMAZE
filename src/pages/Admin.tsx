@@ -405,19 +405,34 @@ export const Admin: React.FC = () => {
 
       try {
         if (editingProduct) {
-          const { error } = await supabase
+          // Try update first
+          const { data: updateData, error: updateError } = await supabase
             .from('products')
             .update(payload)
-            .eq('id', editingProduct.id);
+            .eq('id', editingProduct.id)
+            .select()
+            .single();
           
-          if (!error) {
+          if (!updateError && updateData) {
             dbWritten = true;
-            // Sync local copy
-            saveLocalProduct({
-              ...payload,
-              id: editingProduct.id,
-              created_at: editingProduct.created_at || new Date().toISOString()
-            } as Product);
+            saveLocalProduct(updateData as Product);
+          } else {
+            // If update fails (e.g. local-only ID), try insert instead
+            console.warn('Product update failed, trying insert:', updateError?.message);
+            const { data: insertData, error: insertError } = await supabase
+              .from('products')
+              .insert(payload)
+              .select()
+              .single();
+            
+            if (!insertError && insertData) {
+              dbWritten = true;
+              // Remove old local ID and save with new DB ID
+              deleteLocalProduct(editingProduct.id);
+              saveLocalProduct(insertData as Product);
+            } else {
+              console.error('Supabase product insert also failed:', insertError?.message, insertError?.details, insertError?.hint);
+            }
           }
         } else {
           const { data, error } = await supabase
@@ -428,12 +443,13 @@ export const Admin: React.FC = () => {
           
           if (!error && data) {
             dbWritten = true;
-            // Sync local copy with database UUID
             saveLocalProduct(data as Product);
+          } else {
+            console.error('Supabase product insert failed:', error?.message, error?.details, error?.hint);
           }
         }
-      } catch (dbErr) {
-        console.warn('Supabase product write failed, using LocalStorage fallback.', dbErr);
+      } catch (dbErr: any) {
+        console.error('Supabase product write exception:', dbErr?.message || dbErr);
       }
 
       if (!dbWritten) {
@@ -445,7 +461,10 @@ export const Admin: React.FC = () => {
         saveLocalProduct(localProduct);
       }
 
-      alert(editingProduct ? 'Product updated successfully!' : 'Product created successfully!');
+      alert(editingProduct
+        ? (dbWritten ? 'Product updated successfully! (synced to database)' : 'Product updated locally only (database sync failed)')
+        : (dbWritten ? 'Product created successfully! (synced to database)' : 'Product created locally only (database sync failed)')
+      );
       setIsProductModalOpen(false);
       setEditingProduct(null);
       loadAdminData();
@@ -500,18 +519,31 @@ export const Admin: React.FC = () => {
 
       try {
         if (editingCategory) {
-          const { error } = await supabase
+          const { data: updateData, error: updateError } = await supabase
             .from('categories')
             .update(payload)
-            .eq('id', editingCategory.id);
+            .eq('id', editingCategory.id)
+            .select()
+            .single();
           
-          if (!error) {
+          if (!updateError && updateData) {
             dbWritten = true;
-            saveLocalCategory({
-              ...payload,
-              id: editingCategory.id,
-              created_at: editingCategory.created_at || new Date().toISOString()
-            });
+            saveLocalCategory(updateData as Category);
+          } else {
+            console.warn('Category update failed, trying insert:', updateError?.message);
+            const { data: insertData, error: insertError } = await supabase
+              .from('categories')
+              .insert(payload)
+              .select()
+              .single();
+            
+            if (!insertError && insertData) {
+              dbWritten = true;
+              deleteLocalCategory(editingCategory.id);
+              saveLocalCategory(insertData as Category);
+            } else {
+              console.error('Supabase category insert also failed:', insertError?.message, insertError?.details);
+            }
           }
         } else {
           const { data, error } = await supabase
@@ -523,10 +555,12 @@ export const Admin: React.FC = () => {
           if (!error && data) {
             dbWritten = true;
             saveLocalCategory(data as Category);
+          } else {
+            console.error('Supabase category insert failed:', error?.message, error?.details);
           }
         }
-      } catch (dbErr) {
-        console.warn('Supabase category write failed, using LocalStorage fallback.', dbErr);
+      } catch (dbErr: any) {
+        console.error('Supabase category write exception:', dbErr?.message || dbErr);
       }
 
       if (!dbWritten) {
@@ -538,7 +572,10 @@ export const Admin: React.FC = () => {
         saveLocalCategory(localCategory);
       }
 
-      alert(editingCategory ? 'Category updated!' : 'Category created!');
+      alert(editingCategory
+        ? (dbWritten ? 'Category updated! (synced to database)' : 'Category updated locally only (database sync failed)')
+        : (dbWritten ? 'Category created! (synced to database)' : 'Category created locally only (database sync failed)')
+      );
       setIsCategoryModalOpen(false);
       setEditingCategory(null);
       loadAdminData();

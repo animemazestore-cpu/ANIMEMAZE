@@ -121,29 +121,15 @@ export const getLocalProducts = (): Product[] => {
     const stored: Product[] = data ? JSON.parse(data) : [];
 
     // Sanitize slugs of stored products (fix any URL-slugs from earlier bug)
-    const sanitizedStored = stored.map(sp => ({
+    const sanitized = stored.map(sp => ({
       ...sp,
       slug: sanitizeSlug(sp.slug, sp.name)
     }));
 
-    // Always ensure mock products exist as a baseline — merge stored on top
-    const merged = [...MOCK_PRODUCTS];
-    for (const sp of sanitizedStored) {
-      if (!merged.some(mp => mp.id === sp.id)) {
-        merged.push(sp);
-      } else {
-        // stored version overrides mock (in case admin edited a mock product)
-        const idx = merged.findIndex(mp => mp.id === sp.id);
-        merged[idx] = sp;
-      }
-    }
-
-    // Save sanitized+merged back so future reads have correct slugs
-    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(merged));
-    return merged;
+    return sanitized;
   } catch (e) {
     console.error('Error parsing local products:', e);
-    return MOCK_PRODUCTS;
+    return [];
   }
 };
 
@@ -179,10 +165,7 @@ export const deleteLocalProduct = (id: string): void => {
 export const getLocalCategories = (): Category[] => {
   try {
     const data = localStorage.getItem(CATEGORIES_KEY);
-    if (!data) {
-      localStorage.setItem(CATEGORIES_KEY, JSON.stringify(MOCK_CATEGORIES));
-      return MOCK_CATEGORIES;
-    }
+    if (!data) return [];
     return JSON.parse(data);
   } catch (e) {
     console.error('Error parsing local categories:', e);
