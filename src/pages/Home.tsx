@@ -260,7 +260,7 @@ export const Home: React.FC = () => {
               className="absolute top-16 right-0 glass-card rounded-2xl px-4 py-3 border border-primary/20 shadow-lg shadow-primary/10 z-20"
             >
               <p className="text-xs text-gray-400 font-medium">Latest Drop</p>
-              <p className="text-white text-sm font-bold">Demon Slayer S4</p>
+              <p className="text-white text-sm font-bold">Bleach Action Figure</p>
             </motion.div>
             <motion.div
               animate={{ y: [0, 8, 0] }}
@@ -268,7 +268,7 @@ export const Home: React.FC = () => {
               className="absolute bottom-24 left-0 glass-card rounded-2xl px-4 py-3 border border-cyan-500/20 shadow-lg shadow-cyan-500/10 z-20"
             >
               <p className="text-xs text-gray-400 font-medium">Free Shipping</p>
-              <p className="text-white text-sm font-bold">Orders ₹499+</p>
+              <p className="text-white text-sm font-bold">Orders ₹899+</p>
             </motion.div>
           </motion.div>
         </div>
