@@ -102,13 +102,7 @@ export const Admin: React.FC = () => {
 
   // Fetch / sync replacement requests from database + localStorage
   const loadReplacementsData = useCallback(async () => {
-    const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
     const localReplacements = JSON.parse(localStorage.getItem('animemaze_replacement_requests') || '[]');
-
-    if (isMock) {
-      setReplacementRequests(localReplacements.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-      return;
-    }
 
     let mergedReplacements: ReplacementRequest[] = [];
     try {
@@ -137,7 +131,6 @@ export const Admin: React.FC = () => {
   // Load Data
   const loadAdminData = async () => {
     setLoadingData(true);
-    const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
     const localProds = getLocalProducts();
 
     // Map local orders with products so we can see names/images
@@ -162,26 +155,6 @@ export const Admin: React.FC = () => {
         })
       }));
     };
-
-    if (isMock) {
-      setCategories(getLocalCategories());
-      setProducts(getLocalProducts());
-      setOrders(getLocalOrdersMapped());
-      
-      const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
-      localQuestions.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setQuestions(localQuestions);
-      
-      const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
-      localReviews.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setReviews(localReviews);
-      
-      setSubscribers([]);
-      await loadReplacementsData();
-      loadCoupons();
-      setLoadingData(false);
-      return;
-    }
 
     try {
       // 1. Fetch categories
@@ -428,42 +401,39 @@ export const Admin: React.FC = () => {
         additional_images: addImgs
       };
 
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
       let dbWritten = false;
 
-      if (!isMock) {
-        try {
-          if (editingProduct) {
-            const { error } = await supabase
-              .from('products')
-              .update(payload)
-              .eq('id', editingProduct.id);
-            
-            if (!error) {
-              dbWritten = true;
-              // Sync local copy
-              saveLocalProduct({
-                ...payload,
-                id: editingProduct.id,
-                created_at: editingProduct.created_at || new Date().toISOString()
-              } as Product);
-            }
-          } else {
-            const { data, error } = await supabase
-              .from('products')
-              .insert(payload)
-              .select()
-              .single();
-            
-            if (!error && data) {
-              dbWritten = true;
-              // Sync local copy with database UUID
-              saveLocalProduct(data as Product);
-            }
+      try {
+        if (editingProduct) {
+          const { error } = await supabase
+            .from('products')
+            .update(payload)
+            .eq('id', editingProduct.id);
+          
+          if (!error) {
+            dbWritten = true;
+            // Sync local copy
+            saveLocalProduct({
+              ...payload,
+              id: editingProduct.id,
+              created_at: editingProduct.created_at || new Date().toISOString()
+            } as Product);
           }
-        } catch (dbErr) {
-          console.warn('Supabase product write failed, using LocalStorage fallback.', dbErr);
+        } else {
+          const { data, error } = await supabase
+            .from('products')
+            .insert(payload)
+            .select()
+            .single();
+          
+          if (!error && data) {
+            dbWritten = true;
+            // Sync local copy with database UUID
+            saveLocalProduct(data as Product);
+          }
         }
+      } catch (dbErr) {
+        console.warn('Supabase product write failed, using LocalStorage fallback.', dbErr);
       }
 
       if (!dbWritten) {
@@ -506,10 +476,7 @@ export const Admin: React.FC = () => {
   const handleDeleteProduct = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      if (!isMock) {
-        await supabase.from('products').delete().eq('id', id);
-      }
+      await supabase.from('products').delete().eq('id', id);
     } catch (err: any) {
       console.warn('Failed to delete product in database, deleting locally.', err);
     }
@@ -529,40 +496,37 @@ export const Admin: React.FC = () => {
         image_url: categoryForm.image_url.trim()
       };
 
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
       let dbWritten = false;
 
-      if (!isMock) {
-        try {
-          if (editingCategory) {
-            const { error } = await supabase
-              .from('categories')
-              .update(payload)
-              .eq('id', editingCategory.id);
-            
-            if (!error) {
-              dbWritten = true;
-              saveLocalCategory({
-                ...payload,
-                id: editingCategory.id,
-                created_at: editingCategory.created_at || new Date().toISOString()
-              });
-            }
-          } else {
-            const { data, error } = await supabase
-              .from('categories')
-              .insert(payload)
-              .select()
-              .single();
-            
-            if (!error && data) {
-              dbWritten = true;
-              saveLocalCategory(data as Category);
-            }
+      try {
+        if (editingCategory) {
+          const { error } = await supabase
+            .from('categories')
+            .update(payload)
+            .eq('id', editingCategory.id);
+          
+          if (!error) {
+            dbWritten = true;
+            saveLocalCategory({
+              ...payload,
+              id: editingCategory.id,
+              created_at: editingCategory.created_at || new Date().toISOString()
+            });
           }
-        } catch (dbErr) {
-          console.warn('Supabase category write failed, using LocalStorage fallback.', dbErr);
+        } else {
+          const { data, error } = await supabase
+            .from('categories')
+            .insert(payload)
+            .select()
+            .single();
+          
+          if (!error && data) {
+            dbWritten = true;
+            saveLocalCategory(data as Category);
+          }
         }
+      } catch (dbErr) {
+        console.warn('Supabase category write failed, using LocalStorage fallback.', dbErr);
       }
 
       if (!dbWritten) {
@@ -598,10 +562,7 @@ export const Admin: React.FC = () => {
   const handleDeleteCategory = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this category? (Products inside will set category to null)')) return;
     try {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      if (!isMock) {
-        await supabase.from('categories').delete().eq('id', id);
-      }
+      await supabase.from('categories').delete().eq('id', id);
     } catch (err: any) {
       console.warn('Failed to delete category in database, deleting locally.', err);
     }
