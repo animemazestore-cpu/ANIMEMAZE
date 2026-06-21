@@ -4,6 +4,7 @@ import { ShoppingCart, Heart, Search, User, Menu, X, ShieldAlert, LogOut } from 
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
 import { useWishlistStore } from '../../store/useWishlistStore';
+import { supabase } from '../../lib/supabase';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -15,13 +16,38 @@ export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  const DEFAULT_ANNOUNCEMENT = '🎉 Special Launch Offer: Use code ANIME20 for 20% discount! 🚚 FREE Shipping on orders above ₹999!';
+
   const [announcement, setAnnouncement] = useState(() => {
-    return localStorage.getItem('animemaze_announcement') || '🎉 Special Launch Offer: Use code ANIME20 for 20% discount! 🚚 FREE Shipping on orders above ₹999!';
+    return localStorage.getItem('animemaze_announcement') || DEFAULT_ANNOUNCEMENT;
   });
 
+  // Fetch announcement from DB on mount — DB is source of truth
+  useEffect(() => {
+    const fetchAnnouncement = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_announcements')
+          .select('message')
+          .eq('active', true)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setAnnouncement(data[0].message);
+          localStorage.setItem('animemaze_announcement', data[0].message);
+        }
+      } catch (err) {
+        console.warn('Could not load announcement from DB, using localStorage fallback:', err);
+      }
+    };
+    fetchAnnouncement();
+  }, []);
+
+  // Listen for admin updates fired from the same tab
   useEffect(() => {
     const handleStorageChange = () => {
-      setAnnouncement(localStorage.getItem('animemaze_announcement') || '🎉 Special Launch Offer: Use code ANIME20 for 20% discount! 🚚 FREE Shipping on orders above ₹999!');
+      setAnnouncement(localStorage.getItem('animemaze_announcement') || DEFAULT_ANNOUNCEMENT);
     };
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('announcement_updated', handleStorageChange);

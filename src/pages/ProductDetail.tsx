@@ -151,46 +151,14 @@ export const ProductDetail: React.FC = () => {
     if (!product) return;
 
     const fetchReviewsAndQuestions = async () => {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      
-      // Load local ones first
-      const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]')
+      // Load local reviews and questions as fallback/merge source
+      const localReviews: Review[] = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]')
         .filter((r: any) => r.product_id === product.id);
-      const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]')
+      const localQuestions: ProductQuestion[] = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]')
         .filter((q: any) => q.product_id === product.id);
 
-      if (isMock) {
-        // Hydrate likes count for local reviews
-        const localLikes = JSON.parse(localStorage.getItem('animemaze_local_review_likes') || '[]');
-        const userLikedReviewIds = new Set(localLikes.filter((l: any) => l.user_id === user?.id).map((l: any) => l.review_id));
-        const likeCountsMap: { [key: string]: number } = {};
-        localLikes.forEach((l: any) => {
-          likeCountsMap[l.review_id] = (likeCountsMap[l.review_id] || 0) + 1;
-        });
-
-        const reviewsWithLikes = localReviews.map((r: any) => ({
-          ...r,
-          likes_count: (r.likes_count || 0) + (likeCountsMap[r.id] || 0),
-          is_liked_by_user: user ? userLikedReviewIds.has(r.id) : false
-        }));
-
-        setReviews(reviewsWithLikes);
-        setQuestions(localQuestions);
-        
-        if (user) {
-          const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-          const verified = localOrders.some((o: any) =>
-            o.user_id === user.id &&
-            Array.isArray(o.items) &&
-            o.items.some((item: any) => item.product_id === product.id)
-          );
-          setUserCanReview(verified);
-        }
-        return;
-      }
-
       try {
-        // Fetch reviews
+        // Fetch reviews from Supabase
         const { data: dbReviews, error: revError } = await supabase
           .from('reviews')
           .select('*')
@@ -358,7 +326,7 @@ export const ProductDetail: React.FC = () => {
     setReviewImages(reviewImages.filter((_, idx) => idx !== index));
   };
 
-  // Submit Review
+  // Submit Review — always try Supabase first, localStorage fallback
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
@@ -368,16 +336,8 @@ export const ProductDetail: React.FC = () => {
     try {
       const uploadedUrls: string[] = [];
 
-      // Upload files to review-images bucket (only if we have real storage access, else skip or keep as object urls if mock)
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
-
+      // Try uploading images to Supabase storage
       for (const file of reviewImages) {
-        if (isMock || !isUUID) {
-          // Mock URL
-          uploadedUrls.push(URL.createObjectURL(file));
-          continue;
-        }
         try {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -400,8 +360,7 @@ export const ProductDetail: React.FC = () => {
         }
       }
 
-      const reviewObj = {
-        id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      const reviewPayload = {
         product_id: product.id,
         user_id: user.id,
         user_name: profile.full_name || 'Anonymous User',
@@ -409,12 +368,34 @@ export const ProductDetail: React.FC = () => {
         review_text: reviewText.trim(),
         review_images: uploadedUrls,
         verified_purchase: userCanReview,
-        status: 'APPROVED' as const,
-        created_at: new Date().toISOString()
+        status: 'APPROVED'
       };
 
-      // If mock or invalid UUID (local user), write only to localStorage
-      if (isMock || !isUUID) {
+      // Always try Supabase first
+      try {
+        const { data: insertedReview, error: reviewError } = await supabase
+          .from('reviews')
+          .insert(reviewPayload)
+          .select()
+          .single();
+
+        if (reviewError) throw reviewError;
+
+        if (insertedReview) {
+          setReviews([insertedReview as Review, ...reviews]);
+          setReviewText('');
+          setReviewImages([]);
+          setReviewRating(5);
+          alert('Review posted successfully! (synced to database)');
+        }
+      } catch (dbErr: any) {
+        console.warn('Supabase review insert failed, writing to localStorage fallback:', dbErr);
+        // Fallback to local
+        const reviewObj = {
+          ...reviewPayload,
+          id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+          created_at: new Date().toISOString()
+        };
         const storedReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
         storedReviews.unshift(reviewObj);
         localStorage.setItem('animemaze_local_reviews', JSON.stringify(storedReviews));
@@ -422,55 +403,18 @@ export const ProductDetail: React.FC = () => {
         setReviews([reviewObj as Review, ...reviews]);
         setReviewText('');
         setReviewImages([]);
-        alert("Review posted successfully!");
-      } else {
-        // Real user, try Supabase insert
-        try {
-          const { data: insertedReview, error: reviewError } = await supabase
-            .from('reviews')
-            .insert({
-              product_id: product.id,
-              user_id: user.id,
-              user_name: profile.full_name || 'Anonymous User',
-              rating: reviewRating,
-              review_text: reviewText.trim(),
-              review_images: uploadedUrls,
-              verified_purchase: userCanReview,
-              status: 'APPROVED'
-            })
-            .select()
-            .single();
-
-          if (reviewError) throw reviewError;
-
-          if (insertedReview) {
-            setReviews([insertedReview as Review, ...reviews]);
-            setReviewText('');
-            setReviewImages([]);
-            alert("Review posted successfully!");
-          }
-        } catch (dbErr: any) {
-          console.warn('Supabase review insert failed, writing to localStorage fallback:', dbErr);
-          // Fallback to local
-          const storedReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
-          storedReviews.unshift(reviewObj);
-          localStorage.setItem('animemaze_local_reviews', JSON.stringify(storedReviews));
-
-          setReviews([reviewObj as Review, ...reviews]);
-          setReviewText('');
-          setReviewImages([]);
-          alert("Review posted successfully!");
-        }
+        setReviewRating(5);
+        alert('Review posted! (saved locally, will sync later)');
       }
     } catch (err: any) {
       console.error('Error submitting review:', err);
-      alert(err.message || "Failed to post review. Please try again.");
+      alert(err.message || 'Failed to post review. Please try again.');
     } finally {
       setReviewLoading(false);
     }
   };
 
-  // Submit Question
+  // Submit Question — always try Supabase first, localStorage fallback
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -478,59 +422,46 @@ export const ProductDetail: React.FC = () => {
 
     setQnaLoading(true);
     try {
-      const isMock = localStorage.getItem('animemaze_mock_session') === 'true';
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+      // Always try Supabase first
+      try {
+        const { data: questionData, error } = await supabase
+          .from('product_questions')
+          .insert({
+            product_id: product.id,
+            user_id: user.id,
+            question: newQuestion.trim(),
+          })
+          .select()
+          .single();
 
-      const questionObj = {
-        id: `qna-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-        product_id: product.id,
-        user_id: user.id,
-        question: newQuestion.trim(),
-        answer: null,
-        created_at: new Date().toISOString()
-      };
+        if (error) throw error;
 
-      if (isMock || !isUUID) {
+        if (questionData) {
+          setQuestions([questionData as ProductQuestion, ...questions]);
+          setNewQuestion('');
+          alert('Question submitted! (synced to database)');
+        }
+      } catch (dbErr: any) {
+        console.warn('Supabase question insert failed, writing to localStorage fallback:', dbErr);
+        const questionObj = {
+          id: `qna-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+          product_id: product.id,
+          user_id: user.id,
+          question: newQuestion.trim(),
+          answer: null,
+          created_at: new Date().toISOString()
+        };
         const storedQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
         storedQuestions.unshift(questionObj);
         localStorage.setItem('animemaze_local_questions', JSON.stringify(storedQuestions));
 
         setQuestions([questionObj as ProductQuestion, ...questions]);
         setNewQuestion('');
-        alert("Question submitted! An admin will answer shortly.");
-      } else {
-        try {
-          const { data: questionData, error } = await supabase
-            .from('product_questions')
-            .insert({
-              product_id: product.id,
-              user_id: user.id,
-              question: newQuestion.trim(),
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          if (questionData) {
-            setQuestions([questionData as ProductQuestion, ...questions]);
-            setNewQuestion('');
-            alert("Question submitted! An admin will answer shortly.");
-          }
-        } catch (dbErr: any) {
-          console.warn('Supabase question insert failed, writing to localStorage fallback:', dbErr);
-          const storedQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
-          storedQuestions.unshift(questionObj);
-          localStorage.setItem('animemaze_local_questions', JSON.stringify(storedQuestions));
-
-          setQuestions([questionObj as ProductQuestion, ...questions]);
-          setNewQuestion('');
-          alert("Question submitted! An admin will answer shortly.");
-        }
+        alert('Question submitted! (saved locally)');
       }
     } catch (err: any) {
       console.error('Error submitting question:', err);
-      alert(err.message || "Failed to submit question.");
+      alert(err.message || 'Failed to submit question.');
     } finally {
       setQnaLoading(false);
     }

@@ -76,6 +76,7 @@ export const Dashboard: React.FC = () => {
 
         if (error) throw error;
 
+        const dbOrders = data || [];
         // Retrieve local products to map them to local orders
         const localProds = getLocalProducts();
         const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]')
@@ -97,14 +98,12 @@ export const Dashboard: React.FC = () => {
             })
           }));
 
-        const mergedOrders = [...localOrders];
-        if (data) {
-          data.forEach((dbo: any) => {
-            if (!mergedOrders.some(lo => lo.id === dbo.id)) {
-              mergedOrders.push(dbo);
-            }
-          });
-        }
+        const mergedOrders = [...dbOrders];
+        localOrders.forEach((lo: any) => {
+          if (!mergedOrders.some(dbo => dbo.id === lo.id)) {
+            mergedOrders.push(lo);
+          }
+        });
 
         const ordersWithVariantsMapped = mergedOrders.map((order: any) => {
           const itemVariants = order.shipping_address?.item_variants || [];
@@ -203,33 +202,46 @@ export const Dashboard: React.FC = () => {
         } catch (_) {}
       }
 
-      const requestObj = {
-        id: `repl-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      const dbPayload = {
         order_id: replacementOrderId,
         user_id: user.id,
         reason: replacementReason,
         description: replacementDesc,
         photo_url: photoUrl,
-        status: 'PENDING' as const,
-        admin_notes: null,
-        created_at: new Date().toISOString()
+        status: 'PENDING',
+        admin_notes: null
       };
 
-      // Always save to localStorage as backup/fallback
-      const stored = JSON.parse(localStorage.getItem('animemaze_replacement_requests') || '[]');
-      stored.unshift(requestObj);
-      localStorage.setItem('animemaze_replacement_requests', JSON.stringify(stored));
+      let requestObj = null;
 
-      // Try DB insertion as well
+      // Try DB insertion first
       try {
-        const { error: dbErr } = await supabase.from('replacement_requests').insert(requestObj);
-        if (dbErr) {
-          console.warn('DB insert failed for replacement request, relying on localStorage:', dbErr.message);
+        const { data: dbRequest, error: dbErr } = await supabase
+          .from('replacement_requests')
+          .insert(dbPayload)
+          .select()
+          .single();
+
+        if (dbErr) throw dbErr;
+        if (dbRequest) {
+          requestObj = dbRequest;
         }
       } catch (err) {
-        console.warn('DB insert threw error for replacement request, relying on localStorage:', err);
+        console.warn('DB insert failed for replacement request, using local fallback:', err);
+        // Fallback: generate local ID
+        requestObj = {
+          ...dbPayload,
+          id: `repl-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          created_at: new Date().toISOString()
+        };
       }
 
+      // Save to localStorage as backup/fallback
+      if (requestObj) {
+        const stored = JSON.parse(localStorage.getItem('animemaze_replacement_requests') || '[]');
+        stored.unshift(requestObj);
+        localStorage.setItem('animemaze_replacement_requests', JSON.stringify(stored));
+      }
 
       // Spinner stays active during delay, then modal closes
       setTimeout(() => {

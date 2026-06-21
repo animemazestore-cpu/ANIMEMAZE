@@ -80,24 +80,42 @@ export const Admin: React.FC = () => {
   }, [user, profile, initialized, navigate]);
 
   // --- Coupon Management ---
-  const loadCoupons = useCallback(() => {
-    const storedCoupons = JSON.parse(localStorage.getItem('animemaze_coupons') || '[]');
-    const defaultCoupons = [
-      { code: 'ANIME20', type: 'PERCENT', value: 20, minOrder: 0, active: true },
-      { code: 'NEO10', type: 'PERCENT', value: 10, minOrder: 0, active: true },
-      { code: 'SHINOBI50', type: 'PERCENT', value: 50, minOrder: 0, active: true },
-      { code: 'FREE99', type: 'FIXED', value: 99, minOrder: 0, active: true }
-    ];
-    const allCoupons = [...defaultCoupons];
-    storedCoupons.forEach((c: any) => {
-      if (!allCoupons.some(ac => ac.code === c.code)) {
-        allCoupons.push(c);
-      } else {
-        const idx = allCoupons.findIndex(ac => ac.code === c.code);
-        if (idx >= 0) allCoupons[idx] = { ...allCoupons[idx], ...c };
+  const loadCoupons = useCallback(async () => {
+    try {
+      const { data: dbCoupons, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: true });
+      if (error) throw error;
+      if (dbCoupons && dbCoupons.length > 0) {
+        const mappedCoupons = dbCoupons.map((c: any) => ({
+          id: c.id,
+          code: c.code,
+          type: c.discount_type || c.type,
+          value: Number(c.discount_value !== undefined ? c.discount_value : c.value),
+          minOrder: Number(c.min_order_amount !== undefined ? c.min_order_amount : c.min_order),
+          active: c.active,
+          created_at: c.created_at
+        }));
+        setCoupons(mappedCoupons);
+        // Also cache locally for cart page
+        localStorage.setItem('animemaze_coupons', JSON.stringify(mappedCoupons));
+        return;
       }
-    });
-    setCoupons(allCoupons);
+    } catch (err) {
+      console.warn('Failed to load coupons from DB, using localStorage:', err);
+    }
+    // Fallback to localStorage
+    const storedCoupons = JSON.parse(localStorage.getItem('animemaze_coupons') || '[]');
+    if (storedCoupons.length > 0) {
+      setCoupons(storedCoupons);
+    } else {
+      // Default coupons as last resort
+      const defaultCoupons = [
+        { code: 'ANIME20', type: 'PERCENT', value: 20, minOrder: 0, active: true },
+        { code: 'NEO10', type: 'PERCENT', value: 10, minOrder: 0, active: true },
+        { code: 'SHINOBI50', type: 'PERCENT', value: 50, minOrder: 0, active: true },
+        { code: 'FREE99', type: 'FIXED', value: 99, minOrder: 0, active: true }
+      ];
+      setCoupons(defaultCoupons);
+    }
   }, []);
 
   // Fetch / sync replacement requests from database + localStorage
@@ -161,14 +179,12 @@ export const Admin: React.FC = () => {
       try {
         const { data: dbCats } = await supabase.from('categories').select('*');
         const localCats = getLocalCategories();
-        const mergedCats = [...localCats];
-        if (dbCats) {
-          dbCats.forEach((c: any) => {
-            if (!mergedCats.some(mc => mc.id === c.id)) {
-              mergedCats.push(c);
-            }
-          });
-        }
+        const mergedCats = dbCats ? [...dbCats] : [];
+        localCats.forEach((lc: any) => {
+          if (!mergedCats.some(mc => mc.id === lc.id)) {
+            mergedCats.push(lc);
+          }
+        });
         setCategories(mergedCats);
       } catch (err) {
         console.error('Error loading categories:', err);
@@ -178,19 +194,17 @@ export const Admin: React.FC = () => {
       // 2. Fetch products
       try {
         const { data: dbProds } = await supabase.from('products').select('*, category:categories(*)');
-        const mergedProds = [...localProds];
-        if (dbProds) {
-          dbProds.forEach((p: any) => {
-            const sanitizedProd = {
-              ...p,
-              price: Number(p.price),
-              slug: sanitizeSlug(p.slug, p.name)
-            };
-            if (!mergedProds.some(mp => mp.id === p.id)) {
-              mergedProds.push(sanitizedProd);
-            }
-          });
-        }
+        const localProds = getLocalProducts();
+        const mergedProds = dbProds ? dbProds.map((p: any) => ({
+          ...p,
+          price: Number(p.price),
+          slug: sanitizeSlug(p.slug, p.name)
+        })) : [];
+        localProds.forEach((lp: any) => {
+          if (!mergedProds.some(mp => mp.id === lp.id)) {
+            mergedProds.push(lp);
+          }
+        });
         setProducts(mergedProds);
       } catch (err) {
         console.error('Error loading products:', err);
@@ -201,23 +215,22 @@ export const Admin: React.FC = () => {
       try {
         const { data: dbOrders } = await supabase.from('orders').select(`
           *,
-          payment_proof:payment_proofs (screenshot_url),
+          payment_proof:payment_proof (screenshot_url),
           items:order_items (
             *,
             product:products (*)
           )
         `).order('created_at', { ascending: false });
 
+        const dbOrdersList = dbOrders || [];
         const localMappedOrders = getLocalOrdersMapped();
-        const mergedOrders = [...localMappedOrders];
+        const mergedOrders = [...dbOrdersList];
 
-        if (dbOrders) {
-          dbOrders.forEach((o: any) => {
-            if (!mergedOrders.some((lo: any) => lo.id === o.id)) {
-              mergedOrders.push(o);
-            }
-          });
-        }
+        localMappedOrders.forEach((lo: any) => {
+          if (!mergedOrders.some((dbo: any) => dbo.id === lo.id)) {
+            mergedOrders.push(lo);
+          }
+        });
 
         // Map the selected variant from shipping_address JSON so it's loaded for all orders
         const ordersWithVariantsMapped = mergedOrders.map((order: any) => {
@@ -242,18 +255,16 @@ export const Admin: React.FC = () => {
 
       // 4. Fetch questions
       try {
-        const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
         const { data: dbQuestions, error: qnaError } = await supabase.from('product_questions').select('*').order('created_at', { ascending: false });
         if (qnaError) throw qnaError;
         
-        const mergedQuestions = [...localQuestions];
-        if (dbQuestions) {
-          dbQuestions.forEach((q: any) => {
-            if (!mergedQuestions.some(mq => mq.id === q.id)) {
-              mergedQuestions.push(q);
-            }
-          });
-        }
+        const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
+        const mergedQuestions = dbQuestions ? [...dbQuestions] : [];
+        localQuestions.forEach((q: any) => {
+          if (!mergedQuestions.some(mq => mq.id === q.id)) {
+            mergedQuestions.push(q);
+          }
+        });
         mergedQuestions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setQuestions(mergedQuestions as ProductQuestion[]);
       } catch (err) {
@@ -265,18 +276,16 @@ export const Admin: React.FC = () => {
 
       // 5. Fetch reviews
       try {
-        const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
         const { data: dbReviews, error: revError } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
         if (revError) throw revError;
 
-        const mergedReviews = [...localReviews];
-        if (dbReviews) {
-          dbReviews.forEach((r: any) => {
-            if (!mergedReviews.some(mr => mr.id === r.id)) {
-              mergedReviews.push(r);
-            }
-          });
-        }
+        const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
+        const mergedReviews = dbReviews ? [...dbReviews] : [];
+        localReviews.forEach((r: any) => {
+          if (!mergedReviews.some(mr => mr.id === r.id)) {
+            mergedReviews.push(r);
+          }
+        });
         mergedReviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setReviews(mergedReviews as Review[]);
       } catch (err) {
@@ -300,6 +309,9 @@ export const Admin: React.FC = () => {
       // Load coupons
       loadCoupons();
 
+      // Load announcement
+      loadAnnouncement();
+
     } catch (err) {
       console.error('Error loading admin dashboard details:', err);
     } finally {
@@ -321,52 +333,148 @@ export const Admin: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeTab, loadReplacementsData]);
 
-  const saveCouponsToStorage = (newCoupons: any[]) => {
-    localStorage.setItem('animemaze_coupons', JSON.stringify(newCoupons));
+  const saveCouponsToDB = async (newCoupons: any[]) => {
     setCoupons(newCoupons);
+    // Also cache locally for cart page
+    localStorage.setItem('animemaze_coupons', JSON.stringify(newCoupons));
   };
 
-  const handleCouponSubmit = (e: React.FormEvent) => {
+  const handleCouponSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = couponForm.code.trim().toUpperCase();
     if (!code) return;
     
-    let updatedCoupons = [...coupons];
-    if (editingCoupon) {
-      updatedCoupons = updatedCoupons.map(c => c.code === editingCoupon.code ? { ...couponForm, code } : c);
-    } else {
-      if (updatedCoupons.some(c => c.code === code)) {
-        alert('Coupon code already exists!');
-        return;
+    try {
+      if (editingCoupon) {
+        // Update in DB
+        const { error } = await supabase
+          .from('coupons')
+          .update({ 
+            code, 
+            discount_type: couponForm.type, 
+            discount_value: couponForm.value, 
+            min_order_amount: couponForm.minOrder, 
+            active: couponForm.active 
+          })
+          .eq('code', editingCoupon.code);
+        if (error) throw error;
+      } else {
+        // Check duplicate
+        if (coupons.some(c => c.code === code)) {
+          alert('Coupon code already exists!');
+          return;
+        }
+        // Insert in DB
+        const { error } = await supabase
+          .from('coupons')
+          .insert({ 
+            code, 
+            discount_type: couponForm.type, 
+            discount_value: couponForm.value, 
+            min_order_amount: couponForm.minOrder, 
+            active: couponForm.active 
+          });
+        if (error) throw error;
       }
-      updatedCoupons.push({ ...couponForm, code });
+      alert(editingCoupon ? 'Coupon updated! (synced to database)' : 'Coupon created! (synced to database)');
+    } catch (err: any) {
+      console.warn('Supabase coupon write failed, saving locally:', err);
+      // Fallback: update local state
+      let updatedCoupons = [...coupons];
+      if (editingCoupon) {
+        updatedCoupons = updatedCoupons.map(c => c.code === editingCoupon.code ? { ...couponForm, code } : c);
+      } else {
+        updatedCoupons.push({ ...couponForm, code });
+      }
+      saveCouponsToDB(updatedCoupons);
+      alert(editingCoupon ? 'Coupon updated locally' : 'Coupon created locally');
     }
-    saveCouponsToStorage(updatedCoupons);
     setIsCouponModalOpen(false);
     setEditingCoupon(null);
-    alert(editingCoupon ? 'Coupon updated!' : 'Coupon created!');
+    loadCoupons();
   };
 
-  const handleDeleteCoupon = (code: string) => {
+  const handleDeleteCoupon = async (code: string) => {
     if (!window.confirm(`Delete coupon "${code}"?`)) return;
+    try {
+      const { error } = await supabase.from('coupons').delete().eq('code', code);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase coupon delete failed:', err);
+    }
     const updatedCoupons = coupons.filter(c => c.code !== code);
-    saveCouponsToStorage(updatedCoupons);
+    saveCouponsToDB(updatedCoupons);
+    loadCoupons();
   };
 
-  const handleToggleCoupon = (code: string) => {
+  const handleToggleCoupon = async (code: string) => {
+    const coupon = coupons.find(c => c.code === code);
+    if (!coupon) return;
+    try {
+      const { error } = await supabase.from('coupons').update({ active: !coupon.active }).eq('code', code);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase coupon toggle failed:', err);
+    }
     const updatedCoupons = coupons.map(c => c.code === code ? { ...c, active: !c.active } : c);
-    saveCouponsToStorage(updatedCoupons);
+    saveCouponsToDB(updatedCoupons);
+    loadCoupons();
   };
 
   // --- Announcement Management ---
-  const handleSaveAnnouncement = () => {
+  const loadAnnouncement = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_announcements')
+        .select('message')
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setAnnouncementText(data[0].message);
+        localStorage.setItem('animemaze_announcement', data[0].message);
+        return;
+      }
+    } catch (err) {
+      console.warn('Failed to load announcement from DB:', err);
+    }
+    // Fallback to localStorage
+    setAnnouncementText(localStorage.getItem('animemaze_announcement') || '🎉 Special Launch Offer: Use code ANIME20 for 20% discount! 🚚 FREE Shipping on orders above ₹999!');
+  }, []);
+
+  const handleSaveAnnouncement = async () => {
+    try {
+      // Deactivate all previous announcements first to keep a single active one
+      await supabase
+        .from('site_announcements')
+        .update({ active: false })
+        .eq('active', true);
+
+      const { error } = await supabase
+        .from('site_announcements')
+        .insert({ message: announcementText, active: true });
+
+      if (error) throw error;
+      alert('Announcement updated! (synced to database)');
+    } catch (err) {
+      console.warn('Supabase announcement save failed:', err);
+      alert('Announcement updated locally only');
+    }
     localStorage.setItem('animemaze_announcement', announcementText);
     window.dispatchEvent(new Event('announcement_updated'));
-    alert('Announcement updated successfully!');
   };
 
-  const handleClearAnnouncement = () => {
+  const handleClearAnnouncement = async () => {
     setAnnouncementText('');
+    try {
+      await supabase
+        .from('site_announcements')
+        .update({ active: false })
+        .eq('active', true);
+    } catch (err) {
+      console.warn('Supabase announcement clear failed:', err);
+    }
     localStorage.setItem('animemaze_announcement', '');
     window.dispatchEvent(new Event('announcement_updated'));
     alert('Announcement cleared!');
@@ -608,7 +716,7 @@ export const Admin: React.FC = () => {
     loadAdminData();
   };
 
-  // --- Actions: Order Payment Verification ---
+  // --- Actions: Order Payment Verification --- always try DB first
   const handleVerifyPayment = async (orderId: string, approve: boolean) => {
     const confirmation = window.confirm(`Are you sure you want to ${approve ? 'APPROVE' : 'REJECT'} payment for this order?`);
     if (!confirmation) return;
@@ -616,23 +724,7 @@ export const Admin: React.FC = () => {
     const paymentStatus = approve ? 'PAID' : 'REJECTED';
     const orderStatus = approve ? 'PAID' : 'CANCELLED';
 
-    // Handle local orders
-    const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-    const isLocal = localOrders.some((lo: any) => lo.id === orderId);
-
-    if (isLocal) {
-      const updatedLocalOrders = localOrders.map((lo: any) => {
-        if (lo.id === orderId) {
-          return { ...lo, payment_status: paymentStatus, status: orderStatus };
-        }
-        return lo;
-      });
-      localStorage.setItem('animemaze_local_orders', JSON.stringify(updatedLocalOrders));
-      alert(`Local order payment was successfully ${approve ? 'Approved' : 'Rejected'}.`);
-      loadAdminData();
-      return;
-    }
-
+    // Always try Supabase first
     try {
       const { error } = await supabase
         .from('orders')
@@ -643,39 +735,30 @@ export const Admin: React.FC = () => {
         .eq('id', orderId);
 
       if (error) throw error;
-      alert(`Order payment was successfully ${approve ? 'Approved' : 'Rejected'}.`);
-      loadAdminData();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'Failed to verify payment.');
-    }
-  };
-
-  // --- Actions: Update Order Status ---
-  const performOrderStatusUpdate = async (orderId: string, status: string, trackingInfo?: { carrier: string; tracking_number: string; shipped_at: string }) => {
-    // Handle local orders
-    const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-    const isLocal = localOrders.some((lo: any) => lo.id === orderId);
-
-    if (isLocal) {
-      const updatedLocalOrders = localOrders.map((lo: any) => {
-        if (lo.id === orderId) {
-          const updatedShipping = {
-            ...lo.shipping_address,
-            ...(trackingInfo ? { tracking_info: trackingInfo } : {})
-          };
-          return { ...lo, status, shipping_address: updatedShipping };
-        }
-        return lo;
-      });
-      localStorage.setItem('animemaze_local_orders', JSON.stringify(updatedLocalOrders));
-      alert('Local order status updated!');
+      alert(`Order payment was successfully ${approve ? 'Approved' : 'Rejected'}. (synced to database)`);
       loadAdminData();
       return;
+    } catch (err: any) {
+      console.warn('Supabase order verify failed, trying localStorage:', err);
     }
 
+    // Fallback: Handle local orders
+    const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
+    const updatedLocalOrders = localOrders.map((lo: any) => {
+      if (lo.id === orderId) {
+        return { ...lo, payment_status: paymentStatus, status: orderStatus };
+      }
+      return lo;
+    });
+    localStorage.setItem('animemaze_local_orders', JSON.stringify(updatedLocalOrders));
+    alert(`Order payment ${approve ? 'Approved' : 'Rejected'} (local only).`);
+    loadAdminData();
+  };
+
+  // --- Actions: Update Order Status --- always try DB first
+  const performOrderStatusUpdate = async (orderId: string, status: string, trackingInfo?: { carrier: string; tracking_number: string; shipped_at: string }) => {
+    // Always try Supabase first
     try {
-      // Fetch current shipping address to merge tracking details
       const { data: orderData, error: fetchError } = await supabase
         .from('orders')
         .select('shipping_address')
@@ -699,12 +782,28 @@ export const Admin: React.FC = () => {
         .eq('id', orderId);
 
       if (error) throw error;
-      alert('Order status updated successfully!');
+      alert('Order status updated! (synced to database)');
       loadAdminData();
+      return;
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'Failed to update order status.');
+      console.warn('Supabase order status update failed, trying localStorage:', err);
     }
+
+    // Fallback: Handle local orders
+    const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
+    const updatedLocalOrders = localOrders.map((lo: any) => {
+      if (lo.id === orderId) {
+        const updatedShipping = {
+          ...lo.shipping_address,
+          ...(trackingInfo ? { tracking_info: trackingInfo } : {})
+        };
+        return { ...lo, status, shipping_address: updatedShipping };
+      }
+      return lo;
+    });
+    localStorage.setItem('animemaze_local_orders', JSON.stringify(updatedLocalOrders));
+    alert('Order status updated (local only).');
+    loadAdminData();
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
@@ -736,27 +835,11 @@ export const Admin: React.FC = () => {
     await performOrderStatusUpdate(trackingOrderId, trackingTargetStatus || 'SHIPPED', trackingInfo);
   };
 
-  // --- Actions: Q&A ---
+  // --- Actions: Q&A --- always try DB first
   const handleAnswerQuestion = async (questionId: string, answer: string) => {
     if (!answer.trim()) return;
 
-    // Try updating localStorage first if it exists there
-    const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
-    const isLocal = localQuestions.some((q: any) => q.id === questionId) || questionId.startsWith('qna-');
-
-    if (isLocal) {
-      const updated = localQuestions.map((q: any) => {
-        if (q.id === questionId) {
-          return { ...q, answer: answer.trim() };
-        }
-        return q;
-      });
-      localStorage.setItem('animemaze_local_questions', JSON.stringify(updated));
-      alert('Answer submitted!');
-      loadAdminData();
-      return;
-    }
-
+    // Always try Supabase first
     try {
       const { error } = await supabase
         .from('product_questions')
@@ -764,65 +847,49 @@ export const Admin: React.FC = () => {
         .eq('id', questionId);
 
       if (error) throw error;
-      alert('Answer submitted!');
+      alert('Answer submitted! (synced to database)');
       loadAdminData();
+      return;
     } catch (err: any) {
       console.warn('Supabase answer submit failed, updating locally:', err);
-      const updated = localQuestions.map((q: any) => {
-        if (q.id === questionId) {
-          return { ...q, answer: answer.trim() };
-        }
-        return q;
-      });
-      localStorage.setItem('animemaze_local_questions', JSON.stringify(updated));
-      alert('Answer submitted!');
-      loadAdminData();
     }
+
+    // Fallback: localStorage
+    const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
+    const updated = localQuestions.map((q: any) => {
+      if (q.id === questionId) {
+        return { ...q, answer: answer.trim() };
+      }
+      return q;
+    });
+    localStorage.setItem('animemaze_local_questions', JSON.stringify(updated));
+    alert('Answer submitted (local only).');
+    loadAdminData();
   };
 
   const handleDeleteQuestion = async (id: string) => {
     if (!window.confirm('Delete this question?')) return;
 
-    const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
-    const isLocal = localQuestions.some((q: any) => q.id === id) || id.startsWith('qna-');
-
-    if (isLocal) {
-      const filtered = localQuestions.filter((q: any) => q.id !== id);
-      localStorage.setItem('animemaze_local_questions', JSON.stringify(filtered));
-      loadAdminData();
-      return;
-    }
-
+    // Always try Supabase first
     try {
       const { error } = await supabase.from('product_questions').delete().eq('id', id);
       if (error) throw error;
       loadAdminData();
+      return;
     } catch (err: any) {
       console.warn('Supabase delete failed, deleting locally:', err);
-      const filtered = localQuestions.filter((q: any) => q.id !== id);
-      localStorage.setItem('animemaze_local_questions', JSON.stringify(filtered));
-      loadAdminData();
     }
+
+    // Fallback: localStorage
+    const localQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
+    const filtered = localQuestions.filter((q: any) => q.id !== id);
+    localStorage.setItem('animemaze_local_questions', JSON.stringify(filtered));
+    loadAdminData();
   };
 
-  // --- Actions: Review Moderation ---
+  // --- Actions: Review Moderation --- always try DB first
   const handleModerateReview = async (reviewId: string, status: 'APPROVED' | 'REJECTED') => {
-    const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
-    const isLocal = localReviews.some((r: any) => r.id === reviewId) || reviewId.startsWith('rev-');
-
-    if (isLocal) {
-      const updated = localReviews.map((r: any) => {
-        if (r.id === reviewId) {
-          return { ...r, status };
-        }
-        return r;
-      });
-      localStorage.setItem('animemaze_local_reviews', JSON.stringify(updated));
-      alert(`Review status updated to ${status}.`);
-      loadAdminData();
-      return;
-    }
-
+    // Always try Supabase first
     try {
       const { error } = await supabase
         .from('reviews')
@@ -830,20 +897,24 @@ export const Admin: React.FC = () => {
         .eq('id', reviewId);
 
       if (error) throw error;
-      alert(`Review status updated to ${status}.`);
+      alert(`Review status updated to ${status}. (synced to database)`);
       loadAdminData();
+      return;
     } catch (err: any) {
       console.warn('Supabase moderate failed, moderating locally:', err);
-      const updated = localReviews.map((r: any) => {
-        if (r.id === reviewId) {
-          return { ...r, status };
-        }
-        return r;
-      });
-      localStorage.setItem('animemaze_local_reviews', JSON.stringify(updated));
-      alert(`Review status updated to ${status}.`);
-      loadAdminData();
     }
+
+    // Fallback: localStorage
+    const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
+    const updated = localReviews.map((r: any) => {
+      if (r.id === reviewId) {
+        return { ...r, status };
+      }
+      return r;
+    });
+    localStorage.setItem('animemaze_local_reviews', JSON.stringify(updated));
+    alert(`Review status updated to ${status} (local only).`);
+    loadAdminData();
   };
 
   const handleDeleteReview = async (id: string) => {
@@ -851,10 +922,13 @@ export const Admin: React.FC = () => {
     try {
       const { error } = await supabase.from('reviews').delete().eq('id', id);
       if (error) throw error;
-      loadAdminData();
     } catch (err) {
-      console.error(err);
+      console.warn('Supabase review delete failed, trying local storage:', err);
     }
+    const localReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
+    const filtered = localReviews.filter((r: any) => r.id !== id);
+    localStorage.setItem('animemaze_local_reviews', JSON.stringify(filtered));
+    loadAdminData();
   };
 
   // --- Export Subscribers CSV ---

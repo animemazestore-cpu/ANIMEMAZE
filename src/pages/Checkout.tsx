@@ -151,7 +151,7 @@ export const Checkout: React.FC = () => {
             .getPublicUrl(fileName);
 
           await supabase
-            .from('payment_proofs')
+            .from('payment_proof')
             .insert({ order_id: orderId, screenshot_url: publicUrl });
         }
       } catch (_uploadErr) {

@@ -48,14 +48,12 @@ export const Shop: React.FC = () => {
         if (catError) throw catError;
 
         const localCats = getLocalCategories();
-        const mergedCats = [...localCats];
-        if (dbCategories) {
-          dbCategories.forEach((c: any) => {
-            if (!mergedCats.some(mc => mc.id === c.id)) {
-              mergedCats.push(c);
-            }
-          });
-        }
+        const mergedCats = dbCategories ? [...dbCategories] : [];
+        localCats.forEach((c: any) => {
+          if (!mergedCats.some(mc => mc.id === c.id)) {
+            mergedCats.push(c);
+          }
+        });
         setCategories(mergedCats.length > 0 ? mergedCats : MOCK_CATEGORIES);
 
         // Fetch products from DB
@@ -69,19 +67,16 @@ export const Shop: React.FC = () => {
         if (prodError) throw prodError;
 
         const localProds = getLocalProducts();
-        const mergedProds = [...localProds];
-        if (dbProducts) {
-          dbProducts.forEach((p: any) => {
-            const sanitizedProd = {
-              ...p,
-              price: Number(p.price),
-              slug: sanitizeSlug(p.slug, p.name)
-            };
-            if (!mergedProds.some(mp => mp.id === p.id)) {
-              mergedProds.push(sanitizedProd);
-            }
-          });
-        }
+        const mergedProds = dbProducts ? dbProducts.map((p: any) => ({
+          ...p,
+          price: Number(p.price),
+          slug: sanitizeSlug(p.slug, p.name)
+        })) : [];
+        localProds.forEach((p: any) => {
+          if (!mergedProds.some(mp => mp.id === p.id)) {
+            mergedProds.push(p);
+          }
+        });
         setProducts(mergedProds.length > 0 ? mergedProds : MOCK_PRODUCTS);
       } catch (err) {
         console.error('Error fetching shop details:', err);

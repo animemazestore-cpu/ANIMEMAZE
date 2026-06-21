@@ -126,70 +126,74 @@ export const useAuthStore = create<AuthState>((set, get) => {
     signIn: async (email, password) => {
       set({ loading: true });
       
-      // 1. Mock Admin account
-      if (email === 'admin@animemaze.com' && password === 'admin123') {
-        localStorage.setItem('animemaze_mock_session', 'true');
-        localStorage.setItem('animemaze_mock_user_id', 'mock-admin-id');
-        set({
-          user: MOCK_ADMIN_USER,
-          profile: MOCK_ADMIN_PROFILE,
-          loading: false,
-          initialized: true
-        });
-        return;
-      }
-      
-      // 2. Mock default User account
-      if (email === 'user@animemaze.com' && password === 'user123') {
-        localStorage.setItem('animemaze_mock_session', 'true');
-        localStorage.setItem('animemaze_mock_user_id', 'mock-user-id');
-        set({
-          user: MOCK_USER,
-          profile: MOCK_USER_PROFILE,
-          loading: false,
-          initialized: true
-        });
-        return;
-      }
-
-      // 3. Locally registered accounts fallback
-      const localUsers = JSON.parse(localStorage.getItem('animemaze_local_users') || '[]');
-      const matchedLocal = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-      
-      if (matchedLocal) {
-        localStorage.setItem('animemaze_mock_session', 'true');
-        localStorage.setItem('animemaze_mock_user_id', matchedLocal.id);
-        const userObj: User = {
-          id: matchedLocal.id,
-          app_metadata: {},
-          user_metadata: { full_name: matchedLocal.full_name, avatar_url: matchedLocal.avatar_url },
-          aud: 'authenticated',
-          created_at: matchedLocal.created_at,
-          email: matchedLocal.email,
-          role: 'authenticated'
-        };
-        const profileObj: Profile = {
-          id: matchedLocal.id,
-          email: matchedLocal.email,
-          full_name: matchedLocal.full_name,
-          avatar_url: matchedLocal.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-          role: matchedLocal.role || 'user',
-          created_at: matchedLocal.created_at
-        };
-        set({
-          user: userObj,
-          profile: profileObj,
-          loading: false,
-          initialized: true
-        });
-        return;
-      }
-
-      // 4. Supabase Auth
       try {
+        // Try Supabase Auth first
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Successful login will be handled by the onAuthStateChange listener
+        return;
       } catch (supabaseErr: any) {
+        console.warn('Supabase authentication failed, checking mock/local accounts:', supabaseErr.message);
+        
+        // 1. Mock Admin account
+        if (email === 'admin@animemaze.com' && password === 'admin123') {
+          localStorage.setItem('animemaze_mock_session', 'true');
+          localStorage.setItem('animemaze_mock_user_id', 'mock-admin-id');
+          set({
+            user: MOCK_ADMIN_USER,
+            profile: MOCK_ADMIN_PROFILE,
+            loading: false,
+            initialized: true
+          });
+          return;
+        }
+        
+        // 2. Mock default User account
+        if (email === 'user@animemaze.com' && password === 'user123') {
+          localStorage.setItem('animemaze_mock_session', 'true');
+          localStorage.setItem('animemaze_mock_user_id', 'mock-user-id');
+          set({
+            user: MOCK_USER,
+            profile: MOCK_USER_PROFILE,
+            loading: false,
+            initialized: true
+          });
+          return;
+        }
+
+        // 3. Locally registered accounts fallback
+        const localUsers = JSON.parse(localStorage.getItem('animemaze_local_users') || '[]');
+        const matchedLocal = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+        
+        if (matchedLocal) {
+          localStorage.setItem('animemaze_mock_session', 'true');
+          localStorage.setItem('animemaze_mock_user_id', matchedLocal.id);
+          const userObj: User = {
+            id: matchedLocal.id,
+            app_metadata: {},
+            user_metadata: { full_name: matchedLocal.full_name, avatar_url: matchedLocal.avatar_url },
+            aud: 'authenticated',
+            created_at: matchedLocal.created_at,
+            email: matchedLocal.email,
+            role: 'authenticated'
+          };
+          const profileObj: Profile = {
+            id: matchedLocal.id,
+            email: matchedLocal.email,
+            full_name: matchedLocal.full_name,
+            avatar_url: matchedLocal.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+            role: matchedLocal.role || 'user',
+            created_at: matchedLocal.created_at
+          };
+          set({
+            user: userObj,
+            profile: profileObj,
+            loading: false,
+            initialized: true
+          });
+          return;
+        }
+
         set({ loading: false });
         throw supabaseErr;
       }
