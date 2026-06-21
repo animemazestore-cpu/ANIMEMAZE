@@ -331,16 +331,16 @@ export const Home: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {featuredProducts.map((product, idx) => (
             <motion.div
               key={product.id || idx}
-              whileHover={{ y: -8 }}
-              className="glass-card rounded-2xl border border-white/5 overflow-hidden flex flex-col relative group cursor-pointer"
+              whileHover={{ y: -4 }}
+              className="glass-card rounded-xl border border-white/5 overflow-hidden flex flex-col relative group cursor-pointer"
               onClick={() => navigate(`/product/${product.slug}`)}
             >
               {/* Badge */}
-              <span className="absolute top-4 left-4 z-10 px-2.5 py-1 bg-secondary text-background font-extrabold text-[10px] uppercase rounded-md tracking-wider">
+              <span className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 px-1.5 sm:px-2.5 py-0.5 sm:py-1 bg-secondary text-background font-extrabold text-[9px] sm:text-[10px] uppercase rounded-md tracking-wider">
                 Featured
               </span>
 
@@ -355,16 +355,16 @@ export const Home: React.FC = () => {
               </div>
 
               {/* Details */}
-              <div className="p-5 flex flex-col flex-grow">
-                <h3 className="font-bold text-base text-white group-hover:text-primary-light transition-colors line-clamp-1">
+              <div className="p-2.5 sm:p-5 flex flex-col flex-grow">
+                <h3 className="font-bold text-xs sm:text-base text-white group-hover:text-primary-light transition-colors line-clamp-1">
                   {product.name}
                 </h3>
-                <p className="text-gray-400 text-xs mt-1 line-clamp-2 leading-relaxed flex-grow">
+                <p className="text-gray-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1 line-clamp-2 leading-relaxed flex-grow hidden sm:block">
                   {product.description}
                 </p>
-                <div className="flex items-center justify-between mt-5 pt-3 border-t border-white/5">
-                  <span className="font-bold text-lg text-white">₹{product.price}</span>
-                  <span className="text-xs font-medium text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">
+                <div className="flex items-center justify-between mt-2 sm:mt-5 pt-2 sm:pt-3 border-t border-white/5">
+                  <span className="font-bold text-sm sm:text-lg text-white">₹{product.price}</span>
+                  <span className="text-[9px] sm:text-xs font-medium text-success bg-success/10 border border-success/20 px-1.5 sm:px-2 py-0.5 rounded">
                     In Stock
                   </span>
                 </div>

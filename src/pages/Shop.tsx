@@ -344,17 +344,17 @@ export const Shop: React.FC = () => {
               <Button onClick={clearAllFilters}>Reset All Filters</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
               {filteredProducts.map((product) => {
                 const liked = user ? isInWishlist(product.id) : false;
                 return (
                   <div
                     key={product.id}
                     onClick={() => navigate(`/product/${product.slug}`)}
-                    className="glass-card rounded-2xl border border-white/5 overflow-hidden flex flex-col group cursor-pointer hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
+                    className="glass-card rounded-xl border border-white/5 overflow-hidden flex flex-col group cursor-pointer hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
                   >
                     {/* Image */}
-                    <div className="aspect-[4/5] bg-surface relative overflow-hidden">
+                    <div className="aspect-square sm:aspect-[4/5] bg-surface relative overflow-hidden">
                       <img
                         src={product.main_image_url}
                         alt={product.name}
@@ -368,34 +368,34 @@ export const Shop: React.FC = () => {
                             e.stopPropagation();
                             toggleWishlist(user.id, product);
                           }}
-                          className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md border border-white/10 hover:scale-110 transition-all ${
+                          className={`absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 sm:p-2.5 rounded-full backdrop-blur-md border border-white/10 hover:scale-110 transition-all ${
                             liked ? 'bg-danger/20 text-danger border-danger/30' : 'bg-background/40 text-gray-400 hover:text-white'
                           }`}
                         >
-                          <Heart className={`h-4.5 w-4.5 ${liked ? 'fill-current' : ''}`} />
+                          <Heart className={`h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 ${liked ? 'fill-current' : ''}`} />
                         </button>
                       )}
                     </div>
 
                     {/* Details */}
-                    <div className="p-5 flex flex-col flex-grow">
-                      <div className="flex justify-between items-start gap-2 mb-1.5">
-                        <h3 className="font-bold text-base text-white group-hover:text-primary-light transition-colors line-clamp-1">
+                    <div className="p-2.5 sm:p-5 flex flex-col flex-grow">
+                      <div className="flex justify-between items-start gap-1 sm:gap-2 mb-1">
+                        <h3 className="font-bold text-xs sm:text-base text-white group-hover:text-primary-light transition-colors line-clamp-1">
                           {product.name}
                         </h3>
                       </div>
-                      <p className="text-gray-400 text-xs line-clamp-2 leading-relaxed flex-grow">
+                      <p className="text-gray-400 text-[10px] sm:text-xs line-clamp-2 leading-relaxed flex-grow hidden sm:block">
                         {product.description}
                       </p>
                       
-                      <div className="flex items-center justify-between mt-5 pt-3 border-t border-white/5">
-                        <span className="font-extrabold text-lg text-white">₹{product.price}</span>
+                      <div className="flex items-center justify-between mt-2 sm:mt-5 pt-2 sm:pt-3 border-t border-white/5">
+                        <span className="font-extrabold text-sm sm:text-lg text-white">₹{product.price}</span>
                         {product.stock > 0 ? (
-                          <span className="text-[10px] font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded uppercase">
+                          <span className="text-[8px] sm:text-[10px] font-bold text-success bg-success/10 border border-success/20 px-1.5 sm:px-2 py-0.5 rounded uppercase">
                             In Stock
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/20 px-2 py-0.5 rounded uppercase">
+                          <span className="text-[8px] sm:text-[10px] font-bold text-danger bg-danger/10 border border-danger/20 px-1.5 sm:px-2 py-0.5 rounded uppercase">
                             Out of Stock
                           </span>
                         )}
