@@ -256,7 +256,7 @@ CREATE POLICY "Anyone can view likes" ON public.review_likes FOR SELECT USING (t
 -- Create payment-proofs bucket if not exists
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('payment-proofs', 'payment-proofs', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Policies for public upload and select access on payment-proofs
 DROP POLICY IF EXISTS "Allow public uploads to payment-proofs" ON storage.objects;
