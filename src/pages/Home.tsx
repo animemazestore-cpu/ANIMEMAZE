@@ -22,9 +22,20 @@ export const Home: React.FC = () => {
         setFeaturedProducts(getLocalProducts().filter(p => p.featured).length > 0 ? getLocalProducts().filter(p => p.featured).slice(0, 4) : MOCK_PRODUCTS);
         return;
       }
+
+      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 4000): Promise<T> => {
+        return Promise.race([
+          Promise.resolve(promise),
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+        ]);
+      };
+
       try {
         // Fetch categories
-        const { data: dbCategories, error: catError } = await supabase.from('categories').select('*').limit(6);
+        const { data: dbCategories, error: catError } = await withTimeout(
+          supabase.from('categories').select('*').limit(6),
+          4000
+        );
         if (catError) throw catError;
 
         const localCats = getLocalCategories();
@@ -39,7 +50,10 @@ export const Home: React.FC = () => {
         setCategories(mergedCats.length > 0 ? mergedCats.slice(0, 6) : MOCK_CATEGORIES);
 
         // Fetch featured products
-        const { data: dbProducts, error: prodError } = await supabase.from('products').select('*').eq('featured', true).limit(4);
+        const { data: dbProducts, error: prodError } = await withTimeout(
+          supabase.from('products').select('*').eq('featured', true).limit(4),
+          4000
+        );
         if (prodError) throw prodError;
 
         const localProds = getLocalProducts().filter(p => p.featured);

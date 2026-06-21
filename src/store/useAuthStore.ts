@@ -52,6 +52,13 @@ const MOCK_USER_PROFILE: Profile = {
   created_at: new Date().toISOString()
 };
 
+const withTimeout = <T>(promise: PromiseLike<T>, ms = 4000): Promise<T> => {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+  ]);
+};
+
 export const useAuthStore = create<AuthState>((set, get) => {
   // Listen for auth state changes
   supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -62,11 +69,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
     if (session?.user) {
       const user = session.user;
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        const { data: profile, error } = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single(),
+          4000
+        );
         
         if (error || !profile) {
           const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);
@@ -247,14 +257,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
         localStorage.removeItem('animemaze_mock_user_id');
       }
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 4000);
         if (session?.user) {
           const user = session.user;
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          const { data: profile, error } = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single(),
+            4000
+          );
 
           if (error) {
             const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);

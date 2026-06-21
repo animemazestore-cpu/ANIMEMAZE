@@ -38,9 +38,20 @@ export const Shop: React.FC = () => {
         setProducts(getLocalProducts().length > 0 ? getLocalProducts() : MOCK_PRODUCTS);
         return;
       }
+
+      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 4000): Promise<T> => {
+        return Promise.race([
+          Promise.resolve(promise),
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+        ]);
+      };
+
       try {
         // Fetch categories from DB
-        const { data: dbCategories, error: catError } = await supabase.from('categories').select('*');
+        const { data: dbCategories, error: catError } = await withTimeout(
+          supabase.from('categories').select('*'),
+          4000
+        );
         if (catError) throw catError;
 
         const localCats = getLocalCategories();
@@ -55,10 +66,13 @@ export const Shop: React.FC = () => {
         setCategories(mergedCats.length > 0 ? mergedCats : MOCK_CATEGORIES);
 
         // Fetch products from DB
-        const { data: dbProducts, error: prodError } = await supabase.from('products').select(`
-          *,
-          category:categories (*)
-        `);
+        const { data: dbProducts, error: prodError } = await withTimeout(
+          supabase.from('products').select(`
+            *,
+            category:categories (*)
+          `),
+          4000
+        );
         if (prodError) throw prodError;
 
         const localProds = getLocalProducts();
