@@ -700,7 +700,7 @@ export const ProductDetail: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-12 sm:space-y-20">
       {/* Breadcrumb */}
       <nav className="flex items-center space-x-1.5 text-xs sm:text-sm text-gray-500">
         <Link to="/" className="hover:text-white transition-colors">Home</Link>
@@ -709,12 +709,11 @@ export const ProductDetail: React.FC = () => {
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-gray-300 truncate max-w-xs">{product.name}</span>
       </nav>
-
       {/* Main product display */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {/* Left Side: Images */}
-        <div className="lg:col-span-7 flex flex-col space-y-4">
-          <div className="aspect-[4/5] bg-surface rounded-2xl overflow-hidden border border-white/5 relative">
+        <div className="lg:col-span-5 flex flex-col space-y-3">
+          <div className="aspect-square sm:aspect-[4/5] lg:aspect-square bg-surface rounded-xl sm:rounded-2xl overflow-hidden border border-white/5 relative lg:max-h-[440px]">
             <img
               src={activeImage}
               alt={product.name}
@@ -723,10 +722,10 @@ export const ProductDetail: React.FC = () => {
           </div>
           {/* Thumbnails */}
           {product.additional_images && product.additional_images.length > 0 && (
-            <div className="flex space-x-3 overflow-x-auto pb-2">
+            <div className="flex space-x-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setActiveImage(product.main_image_url)}
-                className={`w-20 h-20 bg-surface rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
+                className={`w-14 h-14 sm:w-16 sm:h-16 bg-surface rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
                   activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-white/5 hover:border-white/20'
                 }`}
               >
@@ -736,7 +735,7 @@ export const ProductDetail: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => setActiveImage(img)}
-                  className={`w-20 h-20 bg-surface rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 bg-surface rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
                     activeImage === img ? 'border-primary scale-95' : 'border-white/5 hover:border-white/20'
                   }`}
                 >
@@ -748,7 +747,7 @@ export const ProductDetail: React.FC = () => {
         </div>
 
         {/* Right Side: Details & Add to Cart */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-7 space-y-6">
           <div className="space-y-2">
             <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-xs font-semibold uppercase">
               <Sparkles className="h-3 w-3" />
