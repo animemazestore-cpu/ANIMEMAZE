@@ -232,11 +232,15 @@ export const Admin: React.FC = () => {
           }
         });
 
-        // Map the selected variant from shipping_address JSON so it's loaded for all orders
+        // Map the selected variant from shipping_address JSON and convert payment proof array to object
         const ordersWithVariantsMapped = mergedOrders.map((order: any) => {
           const itemVariants = order.shipping_address?.item_variants || [];
+          const proof = Array.isArray(order.payment_proof)
+            ? order.payment_proof[0]
+            : order.payment_proof;
           return {
             ...order,
+            payment_proof: proof || null,
             items: order.items?.map((item: any) => {
               const matchedVariant = itemVariants.find((iv: any) => iv.product_id === item.product_id);
               return {

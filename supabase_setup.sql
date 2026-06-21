@@ -252,6 +252,23 @@ DROP POLICY IF EXISTS "Anyone can view likes" ON public.review_likes;
 CREATE POLICY "Users can manage own likes" ON public.review_likes FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Anyone can view likes" ON public.review_likes FOR SELECT USING (true);
 
+-- STORAGE BUCKETS AND OBJECTS POLICIES
+-- Create payment-proofs bucket if not exists
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('payment-proofs', 'payment-proofs', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Policies for public upload and select access on payment-proofs
+DROP POLICY IF EXISTS "Allow public uploads to payment-proofs" ON storage.objects;
+CREATE POLICY "Allow public uploads to payment-proofs"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'payment-proofs');
+
+DROP POLICY IF EXISTS "Allow public read from payment-proofs" ON storage.objects;
+CREATE POLICY "Allow public read from payment-proofs"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'payment-proofs');
+
 -- ============================================================
 -- DONE! After running:
 -- 1. Go to Authentication > Users, create your admin account
