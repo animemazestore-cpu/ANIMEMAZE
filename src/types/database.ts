@@ -40,6 +40,7 @@ export interface ShippingAddress {
   city: string;
   state: string;
   pincode: string;
+  transactionId?: string;
 }
 
 export interface Order {

@@ -436,6 +436,9 @@ export const Dashboard: React.FC = () => {
                               <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400">Shipping Details:</h4>
                               <p className="text-xs text-gray-300">{order.shipping_address?.fullName} | {order.shipping_address?.phone}</p>
                               <p className="text-xs text-gray-400">{order.shipping_address?.address}, {order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
+                              {order.shipping_address?.transactionId && (
+                                <p className="text-xs text-amber-400 font-mono mt-1 select-all">UPI Transaction ID: {order.shipping_address.transactionId}</p>
+                              )}
                             </div>
 
                             <div className="space-y-2.5">

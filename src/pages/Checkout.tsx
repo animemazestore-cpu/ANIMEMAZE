@@ -47,6 +47,7 @@ export const Checkout: React.FC = () => {
   // Payment Proof
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [orderCreatedId, setOrderCreatedId] = useState<string | null>(null);
@@ -81,6 +82,10 @@ export const Checkout: React.FC = () => {
       setErrorMsg('Please upload your payment confirmation screenshot.');
       return;
     }
+    if (!transactionId.trim()) {
+      setErrorMsg('Please enter your transaction ID / UTR.');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -93,6 +98,7 @@ export const Checkout: React.FC = () => {
       city,
       state,
       pincode,
+      transactionId: transactionId.trim(),
       item_variants: items.map(item => ({
         product_id: item.product.id,
         selected_variant: item.selectedVariant || null
@@ -396,7 +402,7 @@ export const Checkout: React.FC = () => {
             {/* Screenshot file upload */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-gray-400 block">
-                Upload Payment Screenshot:
+                Upload Payment Screenshot <span className="text-danger">*</span>:
               </label>
 
               {screenshotPreview ? (
@@ -428,6 +434,16 @@ export const Checkout: React.FC = () => {
                 </label>
               )}
             </div>
+
+            {/* Transaction ID */}
+            <Input
+              label="Transaction ID / UTR *"
+              type="text"
+              required
+              placeholder="Enter 12-digit UPI Transaction ID or UTR"
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+            />
 
             <Button type="submit" fullWidth size="lg" loading={loading}>
               Place Order (Verify Payment)

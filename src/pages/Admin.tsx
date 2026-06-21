@@ -960,6 +960,9 @@ export const Admin: React.FC = () => {
                             <td className="px-6 py-4">
                               <p className="font-bold text-white">{order.shipping_address?.fullName}</p>
                               <p className="text-xs text-gray-500">{order.shipping_address?.phone}</p>
+                              {order.shipping_address?.transactionId && (
+                                <p className="text-xs text-amber-400 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
+                              )}
                             </td>
                             <td className="px-6 py-4 font-extrabold text-white">₹{order.total_amount}</td>
                             <td className="px-6 py-4 text-center">
@@ -1169,6 +1172,9 @@ export const Admin: React.FC = () => {
                           <p className="font-bold text-white">{order.shipping_address?.fullName}</p>
                           <p className="text-gray-500">{order.shipping_address?.phone}</p>
                           <p className="text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state}</p>
+                          {order.shipping_address?.transactionId && (
+                            <p className="text-[10px] text-amber-400 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-xs space-y-2">
                           {order.items?.map((item, idx) => (
