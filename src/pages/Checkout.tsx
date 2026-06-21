@@ -53,10 +53,10 @@ export const Checkout: React.FC = () => {
 
   // Redirect if cart is empty
   useEffect(() => {
-    if (items.length === 0 && !orderCreatedId) {
+    if (items.length === 0 && !orderCreatedId && !loading) {
       navigate('/cart');
     }
-  }, [items, navigate, orderCreatedId]);
+  }, [items, navigate, orderCreatedId, loading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -161,7 +161,11 @@ export const Checkout: React.FC = () => {
 
       clearCart();
       localStorage.removeItem('animemaze_applied_coupon');
-      setOrderCreatedId(orderId);
+      // Delay so confirmation doesn't flash instantly
+      setTimeout(() => {
+        setLoading(false);
+        setOrderCreatedId(orderId);
+      }, 2500);
 
     } catch (supabaseErr: any) {
       console.warn('Supabase order failed, using local order fallback:', supabaseErr);
@@ -194,13 +198,17 @@ export const Checkout: React.FC = () => {
 
         clearCart();
         localStorage.removeItem('animemaze_applied_coupon');
-        setOrderCreatedId(localOrderId);
+        // Delay so confirmation doesn't flash instantly
+        setTimeout(() => {
+          setLoading(false);
+          setOrderCreatedId(localOrderId);
+        }, 2500);
       } catch (localErr) {
         console.error('Local order storage also failed:', localErr);
         setErrorMsg('Could not place order. Please try again.');
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+      // loading stays true during the 2.5s delay until confirmation screen renders
     }
   };
 

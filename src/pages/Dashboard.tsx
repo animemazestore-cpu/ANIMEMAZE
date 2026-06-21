@@ -231,16 +231,16 @@ export const Dashboard: React.FC = () => {
       }
 
 
-      setReplacementSuccess(true);
-      setReplacementDesc('');
-      setReplacementPhoto(null);
+      // Spinner stays active during delay, then modal closes
       setTimeout(() => {
+        setReplacementSubmitting(false);
         setReplacementOrderId(null);
+        setReplacementDesc('');
+        setReplacementPhoto(null);
         setReplacementSuccess(false);
       }, 2500);
     } catch (err: any) {
       alert(err.message || 'Failed to submit replacement request.');
-    } finally {
       setReplacementSubmitting(false);
     }
   };
