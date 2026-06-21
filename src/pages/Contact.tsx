@@ -4,6 +4,15 @@ import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { Mail, MessageSquare, Send, Check } from 'lucide-react';
 
+// Inline Instagram SVG (not available in this version of lucide-react)
+const InstagramIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>
+);
+
 export const Contact: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -61,6 +70,15 @@ export const Contact: React.FC = () => {
               <MessageSquare className="h-5 w-5 text-secondary-light" />
               <span>Response within 12-24 hours</span>
             </div>
+            <a
+              href="https://www.instagram.com/animemaze.store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-3 text-sm text-gray-300 hover:text-pink-400 transition-colors group"
+            >
+              <InstagramIcon />
+              <span>@animemaze.store</span>
+            </a>
           </div>
 
           <div className="p-4 bg-white/2 border border-white/5 rounded-xl text-xs text-gray-500 leading-normal">
