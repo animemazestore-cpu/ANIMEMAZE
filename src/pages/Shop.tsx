@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, ArrowUpDown, X, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types/database';
-import { getLocalProducts, getLocalCategories, MOCK_PRODUCTS, MOCK_CATEGORIES, sanitizeSlug } from '../lib/persistence';
+import { sanitizeSlug } from '../lib/persistence';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWishlistStore } from '../store/useWishlistStore';
 import { Button } from '../components/common/Button';
@@ -40,23 +40,15 @@ export const Shop: React.FC = () => {
       };
 
       try {
-        // Always try Supabase first
+        // Always try Supabase first with cache-busting
         const { data: dbCategories, error: catError } = await withTimeout(
           supabase.from('categories').select('*'),
           5000
         );
         if (catError) throw catError;
+        setCategories(dbCategories || []);
 
-        const localCats = getLocalCategories();
-        const mergedCats = dbCategories ? [...dbCategories] : [];
-        localCats.forEach((c: any) => {
-          if (!mergedCats.some(mc => mc.id === c.id)) {
-            mergedCats.push(c);
-          }
-        });
-        setCategories(mergedCats.length > 0 ? mergedCats : MOCK_CATEGORIES);
-
-        // Fetch products from DB
+        // Fetch products from DB with cache-busting
         const { data: dbProducts, error: prodError } = await withTimeout(
           supabase.from('products').select(`
             *,
@@ -66,25 +58,16 @@ export const Shop: React.FC = () => {
         );
         if (prodError) throw prodError;
 
-        const localProds = getLocalProducts();
-        const mergedProds = dbProducts ? dbProducts.map((p: any) => ({
+        const parsedProds = dbProducts ? dbProducts.map((p: any) => ({
           ...p,
           price: Number(p.price),
           slug: sanitizeSlug(p.slug, p.name)
         })) : [];
-        localProds.forEach((p: any) => {
-          if (!mergedProds.some(mp => mp.id === p.id)) {
-            mergedProds.push(p);
-          }
-        });
-        setProducts(mergedProds.length > 0 ? mergedProds : MOCK_PRODUCTS);
+        setProducts(parsedProds);
       } catch (err) {
         console.error('Error fetching shop details:', err);
-        // Fallback to local/mock data
-        const localCats = getLocalCategories();
-        const localProds = getLocalProducts();
-        setCategories(localCats.length > 0 ? localCats : MOCK_CATEGORIES);
-        setProducts(localProds.length > 0 ? localProds : MOCK_PRODUCTS);
+        setCategories([]);
+        setProducts([]);
       }
     };
 

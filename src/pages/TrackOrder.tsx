@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Calendar, Clock, ShieldAlert, ShoppingBag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getLocalProducts } from '../lib/persistence';
 import type { Order } from '../types/database';
 import { TrackingStepper } from '../components/order/TrackingStepper';
 import { Button } from '../components/common/Button';
@@ -29,42 +28,7 @@ export const TrackOrder: React.FC = () => {
     const cleanContact = contactInfo.trim().toLowerCase();
 
     try {
-      // 1. Check local storage orders first
-      const localProds = getLocalProducts();
-      const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-      
-      const foundLocal = localOrders.find((o: any) => {
-        const matchesId = o.id.toLowerCase() === cleanOrderId.toLowerCase();
-        const matchesEmail = o.shipping_address?.email?.toLowerCase() === cleanContact;
-        const matchesPhone = o.shipping_address?.phone === cleanContact;
-        return matchesId && (matchesEmail || matchesPhone);
-      });
-
-      if (foundLocal) {
-        // Map products
-        const mappedItems = foundLocal.items?.map((item: any) => {
-          const product = localProds.find(p => p.id === item.product_id);
-          return {
-            ...item,
-            product: product || {
-              id: item.product_id,
-              name: item.product_name || 'Anime Product',
-              price: item.price,
-              main_image_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&q=80&w=400',
-              slug: ''
-            }
-          };
-        });
-        
-        setOrder({
-          ...foundLocal,
-          items: mappedItems
-        } as Order);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Fetch from Supabase
+      // Fetch from Supabase
       const { data: dbOrder, error } = await supabase
         .from('orders')
         .select(`

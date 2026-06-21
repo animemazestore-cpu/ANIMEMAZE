@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, ShoppingBag, TrendingUp, Gift, ArrowRight, ShieldCheck, Check, Send, Star, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types/database';
-import { getLocalProducts, getLocalCategories, MOCK_PRODUCTS, MOCK_CATEGORIES, sanitizeSlug } from '../lib/persistence';
+import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 
 export const Home: React.FC = () => {
@@ -24,48 +24,31 @@ export const Home: React.FC = () => {
       };
 
       try {
-        // Always try Supabase first
+        // Always try Supabase first with cache-busting
         const { data: dbCategories, error: catError } = await withTimeout(
           supabase.from('categories').select('*').limit(6),
           5000
         );
         if (catError) throw catError;
+        setCategories(dbCategories || []);
 
-        const localCats = getLocalCategories();
-        const mergedCats = dbCategories ? [...dbCategories] : [];
-        localCats.forEach((c: any) => {
-          if (!mergedCats.some(mc => mc.id === c.id)) {
-            mergedCats.push(c);
-          }
-        });
-        setCategories(mergedCats.length > 0 ? mergedCats.slice(0, 6) : MOCK_CATEGORIES);
-
-        // Fetch featured products
+        // Fetch featured products with cache-busting
         const { data: dbProducts, error: prodError } = await withTimeout(
           supabase.from('products').select('*').eq('featured', true).limit(4),
           5000
         );
         if (prodError) throw prodError;
 
-        const localProds = getLocalProducts().filter(p => p.featured);
-        const mergedProds = dbProducts ? dbProducts.map((p: any) => ({
+        const parsedProds = dbProducts ? dbProducts.map((p: any) => ({
           ...p,
           price: Number(p.price),
           slug: sanitizeSlug(p.slug, p.name)
         })) : [];
-        localProds.forEach((p: any) => {
-          if (!mergedProds.some(mp => mp.id === p.id)) {
-            mergedProds.push(p);
-          }
-        });
-        setFeaturedProducts(mergedProds.length > 0 ? mergedProds.slice(0, 4) : MOCK_PRODUCTS);
+        setFeaturedProducts(parsedProds);
       } catch (err) {
         console.error('Error fetching homepage data:', err);
-        // Fallback to local/mock data
-        const localCats = getLocalCategories();
-        const localProds = getLocalProducts().filter(p => p.featured);
-        setCategories(localCats.length > 0 ? localCats.slice(0, 6) : MOCK_CATEGORIES);
-        setFeaturedProducts(localProds.length > 0 ? localProds.slice(0, 4) : MOCK_PRODUCTS);
+        setCategories([]);
+        setFeaturedProducts([]);
       }
     };
     fetchData();

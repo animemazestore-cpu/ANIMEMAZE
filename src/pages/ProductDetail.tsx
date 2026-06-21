@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, ShieldAlert, Sparkles, ChevronRight, ThumbsUp, Plus, HelpCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product, Review, ProductQuestion } from '../types/database';
-import { getLocalProducts, MOCK_PRODUCTS, sanitizeSlug } from '../lib/persistence';
+import { sanitizeSlug } from '../lib/persistence';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useWishlistStore } from '../store/useWishlistStore';
@@ -13,38 +13,33 @@ export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuthStore();
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
   const { addItem } = useCartStore();
-  const { toggleWishlist, isInWishlist, fetchWishlist } = useWishlistStore();
-
-  // Ensure wishlist is hydrated from localStorage (and synced with DB for real sessions)
-  useEffect(() => {
-    const userId = user?.id || 'guest';
-    fetchWishlist(userId);
-  }, [user?.id]);
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [activeImage, setActiveImage] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-
-  // Q&A States
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [questions, setQuestions] = useState<ProductQuestion[]>([]);
-  const [newQuestion, setNewQuestion] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [qnaLoading, setQnaLoading] = useState(false);
 
-  // Review States
-  const [reviews, setReviews] = useState<Review[]>([]);
+  // Review Form States
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
   const [reviewImages, setReviewImages] = useState<File[]>([]);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [userCanReview, setUserCanReview] = useState(false);
+  const [reviewSort, setReviewSort] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
   
+  // Q&A Form States
+  const [newQuestion, setNewQuestion] = useState('');
+
+  const [activeImage, setActiveImage] = useState('');
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [userCanReview, setUserCanReview] = useState(false);
+
   // Review Filters / Sorting
   const [ratingFilter, setRatingFilter] = useState<number | 'All'>('All');
-  const [reviewSort, setReviewSort] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -52,19 +47,7 @@ export const ProductDetail: React.FC = () => {
       try {
         setLoading(true);
         
-        // 1. Check LocalStorage first for custom products (for all visitors)
-        const localProds = getLocalProducts();
-        const localProd = localProds.find(p => p.slug === slug || sanitizeSlug(p.slug, p.name) === slug);
-        if (localProd) {
-          setProduct(localProd);
-          setActiveImage(localProd.main_image_url);
-          const otherLocalProds = localProds.length > 0 ? localProds : MOCK_PRODUCTS;
-          setRelatedProducts(otherLocalProds.filter(p => p.slug !== slug && sanitizeSlug(p.slug, p.name) !== slug).slice(0, 4));
-          setLoading(false);
-          return;
-        }
-
-        // 2. Fetch product from Supabase
+        // Fetch product from Supabase
         let dbProduct = null;
         try {
           const { data: exactMatch } = await supabase
@@ -79,7 +62,6 @@ export const ProductDetail: React.FC = () => {
           if (exactMatch) {
             dbProduct = exactMatch;
           } else {
-            // Fallback: fetch all and find the matching sanitized slug
             const { data: allProds } = await supabase
               .from('products')
               .select(`
@@ -91,20 +73,12 @@ export const ProductDetail: React.FC = () => {
             }
           }
         } catch (dbErr) {
-          console.warn('Supabase query failed, falling back to local/mock.', dbErr);
+          console.warn('Supabase query failed.', dbErr);
         }
 
         if (!dbProduct) {
-          // Fallback to mock
-          const mock = MOCK_PRODUCTS.find((p) => p.slug === slug || sanitizeSlug(p.slug, p.name) === slug);
-          if (mock) {
-            setProduct({ ...mock, price: Number(mock.price) });
-            setActiveImage(mock.main_image_url);
-            // Related products mock
-            setRelatedProducts(MOCK_PRODUCTS.filter(p => p.slug !== slug && sanitizeSlug(p.slug, p.name) !== slug));
-          } else {
-            setProduct(null);
-          }
+          setProduct(null);
+          setRelatedProducts([]);
         } else {
           const parsedProduct = {
             ...dbProduct,
@@ -114,7 +88,7 @@ export const ProductDetail: React.FC = () => {
           setProduct(parsedProduct);
           setActiveImage(parsedProduct.main_image_url);
 
-          // Fetch related products (same category)
+          // Fetch related products
           try {
             const { data: dbRelated } = await supabase
               .from('products')
@@ -129,11 +103,12 @@ export const ProductDetail: React.FC = () => {
                 price: Number(p.price),
                 slug: sanitizeSlug(p.slug, p.name)
               })) as Product[]);
+            } else {
+              setRelatedProducts([]);
             }
           } catch (relErr) {
             console.warn('Could not fetch related products from Supabase:', relErr);
-            const otherLocalProds = localProds.length > 0 ? localProds : MOCK_PRODUCTS;
-            setRelatedProducts(otherLocalProds.filter(p => p.slug !== slug && sanitizeSlug(p.slug, p.name) !== slug).slice(0, 4));
+            setRelatedProducts([]);
           }
         }
       } catch (err) {
@@ -151,12 +126,6 @@ export const ProductDetail: React.FC = () => {
     if (!product) return;
 
     const fetchReviewsAndQuestions = async () => {
-      // Load local reviews and questions as fallback/merge source
-      const localReviews: Review[] = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]')
-        .filter((r: any) => r.product_id === product.id);
-      const localQuestions: ProductQuestion[] = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]')
-        .filter((q: any) => q.product_id === product.id);
-
       try {
         // Fetch reviews from Supabase
         const { data: dbReviews, error: revError } = await supabase
@@ -167,17 +136,10 @@ export const ProductDetail: React.FC = () => {
 
         if (revError) throw revError;
 
-        const mergedReviews = [...localReviews];
-        if (dbReviews) {
-          dbReviews.forEach((r: any) => {
-            if (!mergedReviews.some(mr => mr.id === r.id)) {
-              mergedReviews.push({
-                ...r,
-                review_images: Array.isArray(r.review_images) ? r.review_images : []
-              });
-            }
-          });
-        }
+        const dbReviewsList = dbReviews ? dbReviews.map((r: any) => ({
+          ...r,
+          review_images: Array.isArray(r.review_images) ? r.review_images : []
+        })) : [];
 
         // Hydrate likes
         const localLikes = JSON.parse(localStorage.getItem('animemaze_local_review_likes') || '[]');
@@ -187,7 +149,7 @@ export const ProductDetail: React.FC = () => {
           likeCountsMap[l.review_id] = (likeCountsMap[l.review_id] || 0) + 1;
         });
 
-        const reviewsWithLikes = mergedReviews.map((r: any) => ({
+        const reviewsWithLikes = dbReviewsList.map((r: any) => ({
           ...r,
           likes_count: (r.likes_count || 0) + (likeCountsMap[r.id] || 0),
           is_liked_by_user: user ? userLikedReviewIds.has(r.id) : false
@@ -203,21 +165,12 @@ export const ProductDetail: React.FC = () => {
 
         if (qnaError) throw qnaError;
 
-        const mergedQuestions = [...localQuestions];
-        if (dbQuestions) {
-          dbQuestions.forEach((q: any) => {
-            if (!mergedQuestions.some(mq => mq.id === q.id)) {
-              mergedQuestions.push(q);
-            }
-          });
-        }
-        mergedQuestions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setQuestions(mergedQuestions as ProductQuestion[]);
+        const questionsList = dbQuestions || [];
+        setQuestions(questionsList as ProductQuestion[]);
 
-        // Verify if user purchased this product (DB + localStorage)
+        // Verify if user purchased this product (DB only)
         if (user) {
           let verified = false;
-          // Check DB orders
           try {
             const { data: userOrders } = await supabase
               .from('orders')
@@ -226,45 +179,13 @@ export const ProductDetail: React.FC = () => {
               .eq('order_items.product_id', product.id);
             if (userOrders && userOrders.length > 0) verified = true;
           } catch (_) {}
-
-          // Check localStorage orders
-          if (!verified) {
-            const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-            verified = localOrders.some((o: any) =>
-              o.user_id === user.id &&
-              Array.isArray(o.items) &&
-              o.items.some((item: any) => item.product_id === product.id)
-            );
-          }
           setUserCanReview(verified);
         }
       } catch (err) {
-        console.error('Error fetching reviews or Q&As from DB, using local only:', err);
-        // Hydrate likes count for local reviews on error
-        const localLikes = JSON.parse(localStorage.getItem('animemaze_local_review_likes') || '[]');
-        const userLikedReviewIds = new Set(localLikes.filter((l: any) => l.user_id === user?.id).map((l: any) => l.review_id));
-        const likeCountsMap: { [key: string]: number } = {};
-        localLikes.forEach((l: any) => {
-          likeCountsMap[l.review_id] = (likeCountsMap[l.review_id] || 0) + 1;
-        });
-
-        const reviewsWithLikes = localReviews.map((r: any) => ({
-          ...r,
-          likes_count: (r.likes_count || 0) + (likeCountsMap[r.id] || 0),
-          is_liked_by_user: user ? userLikedReviewIds.has(r.id) : false
-        }));
-
-        setReviews(reviewsWithLikes);
-        setQuestions(localQuestions);
-        if (user) {
-          const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
-          const verified = localOrders.some((o: any) =>
-            o.user_id === user.id &&
-            Array.isArray(o.items) &&
-            o.items.some((item: any) => item.product_id === product.id)
-          );
-          setUserCanReview(verified);
-        }
+        console.error('Error fetching reviews or Q&As from DB:', err);
+        setReviews([]);
+        setQuestions([]);
+        setUserCanReview(false);
       }
     };
 
@@ -371,40 +292,21 @@ export const ProductDetail: React.FC = () => {
         status: 'APPROVED'
       };
 
-      // Always try Supabase first
-      try {
-        const { data: insertedReview, error: reviewError } = await supabase
-          .from('reviews')
-          .insert(reviewPayload)
-          .select()
-          .single();
+      // Always try Supabase
+      const { data: insertedReview, error: reviewError } = await supabase
+        .from('reviews')
+        .insert(reviewPayload)
+        .select()
+        .single();
 
-        if (reviewError) throw reviewError;
+      if (reviewError) throw reviewError;
 
-        if (insertedReview) {
-          setReviews([insertedReview as Review, ...reviews]);
-          setReviewText('');
-          setReviewImages([]);
-          setReviewRating(5);
-          alert('Review posted successfully! (synced to database)');
-        }
-      } catch (dbErr: any) {
-        console.warn('Supabase review insert failed, writing to localStorage fallback:', dbErr);
-        // Fallback to local
-        const reviewObj = {
-          ...reviewPayload,
-          id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-          created_at: new Date().toISOString()
-        };
-        const storedReviews = JSON.parse(localStorage.getItem('animemaze_local_reviews') || '[]');
-        storedReviews.unshift(reviewObj);
-        localStorage.setItem('animemaze_local_reviews', JSON.stringify(storedReviews));
-
-        setReviews([reviewObj as Review, ...reviews]);
+      if (insertedReview) {
+        setReviews([insertedReview as Review, ...reviews]);
         setReviewText('');
         setReviewImages([]);
         setReviewRating(5);
-        alert('Review posted! (saved locally, will sync later)');
+        alert('Review posted successfully!');
       }
     } catch (err: any) {
       console.error('Error submitting review:', err);
@@ -414,7 +316,7 @@ export const ProductDetail: React.FC = () => {
     }
   };
 
-  // Submit Question — always try Supabase first, localStorage fallback
+  // Submit Question — always try Supabase
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -422,42 +324,22 @@ export const ProductDetail: React.FC = () => {
 
     setQnaLoading(true);
     try {
-      // Always try Supabase first
-      try {
-        const { data: questionData, error } = await supabase
-          .from('product_questions')
-          .insert({
-            product_id: product.id,
-            user_id: user.id,
-            question: newQuestion.trim(),
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (questionData) {
-          setQuestions([questionData as ProductQuestion, ...questions]);
-          setNewQuestion('');
-          alert('Question submitted! (synced to database)');
-        }
-      } catch (dbErr: any) {
-        console.warn('Supabase question insert failed, writing to localStorage fallback:', dbErr);
-        const questionObj = {
-          id: `qna-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      const { data: questionData, error } = await supabase
+        .from('product_questions')
+        .insert({
           product_id: product.id,
           user_id: user.id,
           question: newQuestion.trim(),
-          answer: null,
-          created_at: new Date().toISOString()
-        };
-        const storedQuestions = JSON.parse(localStorage.getItem('animemaze_local_questions') || '[]');
-        storedQuestions.unshift(questionObj);
-        localStorage.setItem('animemaze_local_questions', JSON.stringify(storedQuestions));
+        })
+        .select()
+        .single();
 
-        setQuestions([questionObj as ProductQuestion, ...questions]);
+      if (error) throw error;
+
+      if (questionData) {
+        setQuestions([questionData as ProductQuestion, ...questions]);
         setNewQuestion('');
-        alert('Question submitted! (saved locally)');
+        alert('Question submitted successfully!');
       }
     } catch (err: any) {
       console.error('Error submitting question:', err);

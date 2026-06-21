@@ -5,7 +5,6 @@ import { useWishlistStore } from '../store/useWishlistStore';
 import { useCartStore } from '../store/useCartStore';
 import { supabase } from '../lib/supabase';
 import type { Order } from '../types/database';
-import { getLocalProducts } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { User, ShoppingBag, Heart, Settings, CreditCard, ChevronDown, ChevronUp, RefreshCcw, X } from 'lucide-react';
@@ -77,35 +76,8 @@ export const Dashboard: React.FC = () => {
         if (error) throw error;
 
         const dbOrders = data || [];
-        // Retrieve local products to map them to local orders
-        const localProds = getLocalProducts();
-        const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]')
-          .filter((o: any) => o.user_id === user.id)
-          .map((o: any) => ({
-            ...o,
-            items: o.items?.map((item: any) => {
-              const product = localProds.find(p => p.id === item.product_id);
-              return {
-                ...item,
-                product: product || {
-                  id: item.product_id,
-                  name: item.product_name || 'Anime Product',
-                  price: item.price,
-                  main_image_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&q=80&w=400',
-                  slug: ''
-                }
-              };
-            })
-          }));
 
-        const mergedOrders = [...dbOrders];
-        localOrders.forEach((lo: any) => {
-          if (!mergedOrders.some(dbo => dbo.id === lo.id)) {
-            mergedOrders.push(lo);
-          }
-        });
-
-        const ordersWithVariantsMapped = mergedOrders.map((order: any) => {
+        const ordersWithVariantsMapped = dbOrders.map((order: any) => {
           const itemVariants = order.shipping_address?.item_variants || [];
           return {
             ...order,
@@ -122,28 +94,7 @@ export const Dashboard: React.FC = () => {
         setOrders(ordersWithVariantsMapped as Order[]);
       } catch (err) {
         console.error('Error fetching user orders:', err);
-        // Fallback to local orders only on db error
-        const localProds = getLocalProducts();
-        const localOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]')
-          .filter((o: any) => o.user_id === user.id)
-          .map((o: any) => ({
-            ...o,
-            items: o.items?.map((item: any) => {
-              const product = localProds.find(p => p.id === item.product_id);
-              return {
-                ...item,
-                selected_variant: item.selected_variant || null,
-                product: product || {
-                  id: item.product_id,
-                  name: item.product_name || 'Anime Product',
-                  price: item.price,
-                  main_image_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&q=80&w=400',
-                  slug: ''
-                }
-              };
-            })
-          }));
-        setOrders(localOrders as Order[]);
+        setOrders([]);
       } finally {
         setOrdersLoading(false);
       }
@@ -212,36 +163,12 @@ export const Dashboard: React.FC = () => {
         admin_notes: null
       };
 
-      let requestObj = null;
+      // Try DB insertion
+      const { error: dbErr } = await supabase
+        .from('replacement_requests')
+        .insert(dbPayload);
 
-      // Try DB insertion first
-      try {
-        const { data: dbRequest, error: dbErr } = await supabase
-          .from('replacement_requests')
-          .insert(dbPayload)
-          .select()
-          .single();
-
-        if (dbErr) throw dbErr;
-        if (dbRequest) {
-          requestObj = dbRequest;
-        }
-      } catch (err) {
-        console.warn('DB insert failed for replacement request, using local fallback:', err);
-        // Fallback: generate local ID
-        requestObj = {
-          ...dbPayload,
-          id: `repl-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          created_at: new Date().toISOString()
-        };
-      }
-
-      // Save to localStorage as backup/fallback
-      if (requestObj) {
-        const stored = JSON.parse(localStorage.getItem('animemaze_replacement_requests') || '[]');
-        stored.unshift(requestObj);
-        localStorage.setItem('animemaze_replacement_requests', JSON.stringify(stored));
-      }
+      if (dbErr) throw dbErr;
 
       // Spinner stays active during delay, then modal closes
       setTimeout(() => {
