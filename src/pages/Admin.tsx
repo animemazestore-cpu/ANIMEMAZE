@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useCatalogStore } from '../store/useCatalogStore';
 import { supabase } from '../lib/supabase';
 import type { Product, Category, Order, ProductQuestion, Review, NewsletterSubscriber, ReplacementRequest } from '../types/database';
 import { sanitizeSlug } from '../lib/persistence';
@@ -11,6 +12,7 @@ import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, Lis
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, initialized } = useAuthStore();
+  const fetchCategories = useCatalogStore((s) => s.fetchCategories);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'verification' | 'products' | 'categories' | 'orders' | 'inventory' | 'questions' | 'reviews' | 'subscribers' | 'replacements' | 'coupons' | 'announcement'>('verification');
@@ -492,6 +494,8 @@ export const Admin: React.FC = () => {
       setIsCategoryModalOpen(false);
       setEditingCategory(null);
       loadAdminData();
+      // Force refresh catalog store to sync category changes across the app
+      void fetchCategories(true);
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Category action failed.');
