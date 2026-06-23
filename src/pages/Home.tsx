@@ -113,7 +113,7 @@ export const Home: React.FC = () => {
               <img
                 src="/hero_bg.png"
                 alt="Anime merchandise collection"
-                className={`w-full max-w-md object-contain transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full max-w-lg object-contain transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="eager"
                 onLoad={() => setHeroImageLoaded(true)}
               />
