@@ -110,15 +110,10 @@ export const Home: React.FC = () => {
             </div>
 
             <div className="hidden lg:flex items-center justify-center">
-              {!heroImageLoaded && (
-                <div className="w-full max-w-md aspect-square flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary" />
-                </div>
-              )}
               <img
                 src="/hero_bg.png"
                 alt="Anime merchandise collection"
-                className={`w-full max-w-md object-contain transition-opacity duration-300 ${heroImageLoaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+                className={`w-full max-w-md object-contain transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="eager"
                 onLoad={() => setHeroImageLoaded(true)}
               />
