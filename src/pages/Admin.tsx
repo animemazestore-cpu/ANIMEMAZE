@@ -46,7 +46,8 @@ export const Admin: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState({
     name: '',
-    image_url: ''
+    image_url: '',
+    size_enabled: false
   });
 
   // Selected Order for screenshot view
@@ -468,7 +469,8 @@ export const Admin: React.FC = () => {
     try {
       const payload = {
         name: categoryForm.name.trim(),
-        image_url: categoryForm.image_url.trim()
+        image_url: categoryForm.image_url.trim(),
+        size_enabled: categoryForm.size_enabled
       };
 
       if (editingCategory) {
@@ -502,7 +504,8 @@ export const Admin: React.FC = () => {
     setEditingCategory(cat);
     setCategoryForm({
       name: cat.name,
-      image_url: cat.image_url
+      image_url: cat.image_url,
+      size_enabled: cat.size_enabled || false
     });
     setIsCategoryModalOpen(true);
   };
@@ -911,7 +914,7 @@ export const Admin: React.FC = () => {
                 </h2>
                 <Button size="sm" onClick={() => {
                   setEditingCategory(null);
-                  setCategoryForm({ name: '', image_url: '' });
+                  setCategoryForm({ name: '', image_url: '', size_enabled: false });
                   setIsCategoryModalOpen(true);
                 }}>
                   <Plus className="mr-1.5 h-4 w-4" /> Add Category
@@ -925,6 +928,7 @@ export const Admin: React.FC = () => {
                     <tr>
                       <th className="px-6 py-4">Image</th>
                       <th className="px-6 py-4">Category Name</th>
+                      <th className="px-6 py-4">Sizes</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -935,6 +939,17 @@ export const Admin: React.FC = () => {
                           <img src={cat.image_url} alt="" className="w-12 h-12 object-cover rounded-xl bg-gray-100 border border-gray-200" />
                         </td>
                         <td className="px-6 py-3 font-bold text-gray-900">{cat.name}</td>
+                        <td className="px-6 py-3">
+                          {cat.size_enabled ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-success/10 border border-success/20 text-success text-xs font-bold">
+                              Enabled
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-gray-500 text-xs font-bold">
+                              Disabled
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-3 text-right space-x-2">
                           <button
                             onClick={() => handleEditCategory(cat)}
@@ -1713,6 +1728,26 @@ export const Admin: React.FC = () => {
                 value={categoryForm.image_url}
                 onChange={(e) => setCategoryForm({ ...categoryForm, image_url: e.target.value })}
               />
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div>
+                  <label className="text-sm font-semibold text-gray-900 block">Enable Size Selection</label>
+                  <p className="text-xs text-gray-500 mt-1">Products in this category will require size selection (S, M, L, XL)</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCategoryForm({ ...categoryForm, size_enabled: !categoryForm.size_enabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    categoryForm.size_enabled ? 'bg-primary' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      categoryForm.size_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
 
               <div className="flex gap-4 justify-end pt-4">
                 <Button variant="outline" type="button" onClick={() => setIsCategoryModalOpen(false)} disabled={submittingCategory}>

@@ -11,6 +11,7 @@ export interface Category {
   id: string;
   name: string;
   image_url: string;
+  size_enabled: boolean;
   created_at: string;
 }
 

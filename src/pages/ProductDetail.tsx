@@ -463,11 +463,7 @@ export const ProductDetail: React.FC = () => {
 
   const liked = user ? isInWishlist(product.id) : false;
   const isOutOfStock = product.stock <= 0;
-  const isApparelOrMerch = product && (
-    product.category_id === '2' || 
-    /hoodie|shirt|t-shirt|apparel|clothing|jacket|sweater|jersey|socks|cap|merch/i.test(product.name || '') ||
-    /hoodie|shirt|t-shirt|apparel|clothing|jacket|sweater|jersey|socks|cap|merch/i.test(product.description || '')
-  );
+  const sizeEnabled = product.category?.size_enabled || false;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-12 sm:space-y-20">
@@ -577,7 +573,7 @@ export const ProductDetail: React.FC = () => {
           {/* Actions */}
           {!isOutOfStock && (
             <div className="space-y-4 pt-4">
-              {isApparelOrMerch && (
+              {sizeEnabled && (
                 <div className="space-y-3 border-b border-gray-200 pb-4 mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 text-sm font-semibold uppercase tracking-wider">Select Size</span>
@@ -626,7 +622,7 @@ export const ProductDetail: React.FC = () => {
               <div className="flex gap-4 pt-2">
                 <Button
                   onClick={() => {
-                    if (isApparelOrMerch && !selectedSize) {
+                    if (sizeEnabled && !selectedSize) {
                       alert("Please select a size (S, M, L, or XL) before adding to cart!");
                       return;
                     }

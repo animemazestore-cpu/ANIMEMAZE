@@ -1,7 +1,7 @@
 import { sanitizeSlug } from './persistence';
 import type { Category, Product } from '../types/database';
 
-export const CATEGORY_FIELDS = 'id, name, image_url, created_at';
+export const CATEGORY_FIELDS = 'id, name, image_url, size_enabled, created_at';
 
 export const PRODUCT_LIST_FIELDS =
   'id, name, slug, description, category_id, price, stock, featured, main_image_url, created_at';
