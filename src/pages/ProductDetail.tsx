@@ -10,6 +10,7 @@ import { useCatalogStore } from '../store/useCatalogStore';
 import { Button } from '../components/common/Button';
 import { ProductDetailSkeleton } from '../components/product/ProductDetailSkeleton';
 import { ProductImage } from '../components/product/ProductImage';
+import { ProductDescription } from '../components/product/ProductDescription';
 
 export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -486,7 +487,7 @@ export const ProductDetail: React.FC = () => {
             <ProductImage
               src={activeImage}
               alt={product.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               priority
               sizes="(max-width: 1024px) 100vw, 440px"
             />
@@ -500,7 +501,7 @@ export const ProductDetail: React.FC = () => {
                   activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <ProductImage src={product.main_image_url} alt="" className="w-full h-full object-cover" sizes="64px" />
+                <ProductImage src={product.main_image_url} alt="" className="w-full h-full object-contain" sizes="64px" />
               </button>
               {product.additional_images.map((img, idx) => (
                 <button
@@ -510,7 +511,7 @@ export const ProductDetail: React.FC = () => {
                     activeImage === img ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  <ProductImage src={img} alt="" className="w-full h-full object-cover" sizes="64px" />
+                  <ProductImage src={img} alt="" className="w-full h-full object-contain" sizes="64px" />
                 </button>
               ))}
             </div>
@@ -547,9 +548,13 @@ export const ProductDetail: React.FC = () => {
 
           <div className="text-2xl font-extrabold text-gray-900">₹{product.price}</div>
 
-          <p className="text-gray-600 text-sm leading-relaxed border-t border-b border-gray-200 py-4">
-            {product.description}
-          </p>
+          <div className="border-t border-b border-gray-200 py-4">
+            <ProductDescription 
+              description={product.description} 
+              className="text-sm text-gray-600"
+              lines={3}
+            />
+          </div>
 
           {/* Stock state */}
           <div className="flex items-center justify-between text-sm">

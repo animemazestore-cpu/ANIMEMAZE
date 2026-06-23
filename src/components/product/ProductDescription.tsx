@@ -61,7 +61,7 @@ export function ProductDescription({
       : undefined;
 
   return (
-    <div ref={wrapperRef} className="relative mt-2.5 sm:mt-3 hidden sm:block">
+    <div ref={wrapperRef} className="relative mt-2.5 sm:mt-3">
       <p
         ref={fullMeasureRef}
         className={`${className} leading-relaxed invisible absolute inset-x-0 top-0 -z-10 pointer-events-none`}
