@@ -7,6 +7,7 @@ import { sanitizeSlug } from '../lib/persistence';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWishlistStore } from '../store/useWishlistStore';
 import { Button } from '../components/common/Button';
+import { ProductDescription } from '../components/product/ProductDescription';
 
 export const Shop: React.FC = () => {
   const navigate = useNavigate();
@@ -339,14 +340,14 @@ export const Shop: React.FC = () => {
                   <div
                     key={product.id}
                     onClick={() => navigate(`/product/${product.slug}`)}
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer hover:border-primary transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-md"
+                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 ease-out"
                   >
                     {/* Image */}
                     <div className="aspect-square sm:aspect-[4/5] bg-gray-50 relative overflow-hidden">
                       <img
                         src={product.main_image_url}
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                         loading="lazy"
                       />
                       {/* Wishlist Button */}
@@ -366,17 +367,17 @@ export const Shop: React.FC = () => {
                     </div>
 
                     {/* Details */}
-                    <div className="p-2.5 sm:p-5 flex flex-col flex-grow">
-                      <div className="flex justify-between items-start gap-1 sm:gap-2 mb-1">
-                        <h3 className="font-bold text-xs sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-1">
-                          {product.name}
-                        </h3>
-                      </div>
-                      <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-2 leading-relaxed flex-grow hidden sm:block">
-                        {product.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between mt-2 sm:mt-5 pt-2 sm:pt-3 border-t border-gray-100">
+                    <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                      <h3 className="font-bold text-xs sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                        {product.name}
+                      </h3>
+                      <ProductDescription
+                        description={product.description}
+                        className="text-[10px] sm:text-xs"
+                        lines={3}
+                      />
+
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                         <span className="font-extrabold text-sm sm:text-lg text-gray-900">₹{product.price}</span>
                         {product.stock > 0 ? (
                           <span className="text-[8px] sm:text-[10px] font-bold text-success bg-success/10 border border-success/20 px-1.5 sm:px-2 py-0.5 rounded uppercase">

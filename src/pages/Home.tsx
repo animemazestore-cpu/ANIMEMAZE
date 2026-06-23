@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types/database';
 import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
+import { ProductDescription } from '../components/product/ProductDescription';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -210,7 +211,7 @@ export const Home: React.FC = () => {
             {featuredProducts.map((product) => (
               <article
                 key={product.id}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-md hover:border-primary/30 transition-all"
+                className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 ease-out"
                 onClick={() => navigate(`/product/${product.slug}`)}
               >
                 <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
@@ -220,21 +221,17 @@ export const Home: React.FC = () => {
                   <img
                     src={product.main_image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                     loading="lazy"
                   />
                 </div>
 
-                <div className="p-3 sm:p-4 flex flex-col flex-grow">
-                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2">
+                <div className="p-4 sm:p-5 flex flex-col flex-grow">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-1">
                     {product.name}
                   </h3>
-                  {product.description && (
-                    <p className="text-gray-500 text-xs mt-1 line-clamp-2 leading-relaxed hidden sm:block">
-                      {product.description}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+                  <ProductDescription description={product.description} className="text-xs" lines={3} />
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                     <span className="font-bold text-sm sm:text-base text-gray-900">₹{product.price}</span>
                     {product.stock > 0 ? (
                       <span className="text-[10px] sm:text-xs font-medium text-success">In stock</span>
