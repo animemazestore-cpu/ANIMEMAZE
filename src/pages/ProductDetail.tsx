@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, ShieldAlert, Sparkles, ChevronRight, ThumbsUp, Plus, HelpCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product, Review, ProductQuestion } from '../types/database';
-import { sanitizeSlug } from '../lib/persistence';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useWishlistStore } from '../store/useWishlistStore';
+import { useCatalogStore } from '../store/useCatalogStore';
 import { Button } from '../components/common/Button';
+import { ProductDetailSkeleton } from '../components/product/ProductDetailSkeleton';
+import { ProductImage } from '../components/product/ProductImage';
 
 export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -15,6 +17,8 @@ export const ProductDetail: React.FC = () => {
   const { user, profile } = useAuthStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const { addItem } = useCartStore();
+  const getProductBySlug = useCatalogStore((s) => s.getProductBySlug);
+  const getRelatedProducts = useCatalogStore((s) => s.getRelatedProducts);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -44,72 +48,43 @@ export const ProductDetail: React.FC = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       if (!slug) return;
+
+      const cacheKey = slug.toLowerCase();
+      const cached = useCatalogStore.getState().productDetailsBySlug[cacheKey];
+      const cacheFresh =
+        cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000;
+
+      if (cacheFresh) {
+        setProduct(cached.product);
+        setActiveImage(cached.product.main_image_url);
+        setLoading(false);
+        const related = await getRelatedProducts(
+          cached.product.id,
+          cached.product.category_id,
+          4
+        );
+        setRelatedProducts(related);
+        return;
+      }
+
       try {
         setLoading(true);
-        
-        // Fetch product from Supabase
-        let dbProduct = null;
-        try {
-          const { data: exactMatch } = await supabase
-            .from('products')
-            .select(`
-              *,
-              category:categories (*)
-            `)
-            .eq('slug', slug)
-            .maybeSingle();
-          
-          if (exactMatch) {
-            dbProduct = exactMatch;
-          } else {
-            const { data: allProds } = await supabase
-              .from('products')
-              .select(`
-                *,
-                category:categories (*)
-              `);
-            if (allProds) {
-              dbProduct = allProds.find(p => sanitizeSlug(p.slug, p.name) === slug) || null;
-            }
-          }
-        } catch (dbErr) {
-          console.warn('Supabase query failed.', dbErr);
-        }
 
-        if (!dbProduct) {
+        const fetchedProduct = await getProductBySlug(slug);
+
+        if (!fetchedProduct) {
           setProduct(null);
           setRelatedProducts([]);
         } else {
-          const parsedProduct = {
-            ...dbProduct,
-            price: Number(dbProduct.price),
-            slug: sanitizeSlug(dbProduct.slug, dbProduct.name)
-          } as Product;
-          setProduct(parsedProduct);
-          setActiveImage(parsedProduct.main_image_url);
+          setProduct(fetchedProduct);
+          setActiveImage(fetchedProduct.main_image_url);
 
-          // Fetch related products
-          try {
-            const { data: dbRelated } = await supabase
-              .from('products')
-              .select('*')
-              .eq('category_id', parsedProduct.category_id)
-              .neq('id', parsedProduct.id)
-              .limit(4);
-            
-            if (dbRelated) {
-              setRelatedProducts(dbRelated.map(p => ({
-                ...p,
-                price: Number(p.price),
-                slug: sanitizeSlug(p.slug, p.name)
-              })) as Product[]);
-            } else {
-              setRelatedProducts([]);
-            }
-          } catch (relErr) {
-            console.warn('Could not fetch related products from Supabase:', relErr);
-            setRelatedProducts([]);
-          }
+          const related = await getRelatedProducts(
+            fetchedProduct.id,
+            fetchedProduct.category_id,
+            4
+          );
+          setRelatedProducts(related);
         }
       } catch (err) {
         console.error('Error fetching product details:', err);
@@ -119,7 +94,7 @@ export const ProductDetail: React.FC = () => {
     };
 
     fetchProductDetails();
-  }, [slug]);
+  }, [slug, getProductBySlug, getRelatedProducts]);
 
   // Fetch Reviews & Q&A
   useEffect(() => {
@@ -193,11 +168,7 @@ export const ProductDetail: React.FC = () => {
   }, [product, user]);
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -512,10 +483,12 @@ export const ProductDetail: React.FC = () => {
         {/* Left Side: Images */}
         <div className="lg:col-span-5 flex flex-col space-y-3">
           <div className="aspect-square sm:aspect-[4/5] lg:aspect-square bg-gray-50 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 relative lg:max-h-[440px]">
-            <img
+            <ProductImage
               src={activeImage}
               alt={product.name}
               className="w-full h-full object-cover"
+              priority
+              sizes="(max-width: 1024px) 100vw, 440px"
             />
           </div>
           {/* Thumbnails */}
@@ -527,7 +500,7 @@ export const ProductDetail: React.FC = () => {
                   activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <img src={product.main_image_url} alt="" className="w-full h-full object-cover" />
+                <ProductImage src={product.main_image_url} alt="" className="w-full h-full object-cover" sizes="64px" />
               </button>
               {product.additional_images.map((img, idx) => (
                 <button
@@ -537,7 +510,7 @@ export const ProductDetail: React.FC = () => {
                     activeImage === img ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <ProductImage src={img} alt="" className="w-full h-full object-cover" sizes="64px" />
                 </button>
               ))}
             </div>
@@ -994,7 +967,7 @@ export const ProductDetail: React.FC = () => {
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md"
               >
                 <div className="aspect-[4/5] bg-gray-50 overflow-hidden relative">
-                  <img src={prod.main_image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <ProductImage src={prod.main_image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </div>
                 <div className="p-4 flex flex-col flex-grow">
                   <h3 className="font-bold text-sm text-gray-900 group-hover:text-primary transition-colors truncate">{prod.name}</h3>

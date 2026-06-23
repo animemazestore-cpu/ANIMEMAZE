@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
+import { useCatalogStore } from './store/useCatalogStore';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
 
@@ -35,11 +36,13 @@ const ScrollToTop: React.FC = () => {
 
 export const App: React.FC = () => {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const initializeCatalog = useCatalogStore((state) => state.initializeCatalog);
 
-  // Initialize session state on startup
+  // Initialize session state and preload catalog on startup
   useEffect(() => {
     checkSession();
-  }, [checkSession]);
+    void initializeCatalog();
+  }, [checkSession, initializeCatalog]);
 
   return (
     <Router>

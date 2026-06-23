@@ -1,61 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, ShoppingBag, ArrowRight, ShieldCheck, Check, Send, Gift, Truck, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Product, Category } from '../types/database';
-import { sanitizeSlug } from '../lib/persistence';
+import { useCatalogStore } from '../store/useCatalogStore';
 import { Button } from '../components/common/Button';
-import { ProductDescription } from '../components/product/ProductDescription';
+import { ProductCard } from '../components/product/ProductCard';
+import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
+import { CategoryCardSkeleton } from '../components/product/CategoryCardSkeleton';
+import { ProductImage } from '../components/product/ProductImage';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const categories = useCatalogStore((s) => s.categories);
+  const products = useCatalogStore((s) => s.products);
+  const categoriesLoading = useCatalogStore((s) => s.categoriesLoading);
+  const productsLoading = useCatalogStore((s) => s.productsLoading);
+  const initializeCatalog = useCatalogStore((s) => s.initializeCatalog);
+
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 5000): Promise<T> => {
-        return Promise.race([
-          Promise.resolve(promise),
-          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
-        ]);
-      };
+    void initializeCatalog();
+  }, [initializeCatalog]);
 
-      setLoading(true);
-      try {
-        const { data: dbCategories, error: catError } = await withTimeout(
-          supabase.from('categories').select('*').order('name'),
-          5000
-        );
-        if (catError) throw catError;
-        setCategories(dbCategories || []);
+  const featuredProducts = useMemo(
+    () => products.filter((p) => p.featured),
+    [products]
+  );
 
-        const { data: dbProducts, error: prodError } = await withTimeout(
-          supabase.from('products').select('*').eq('featured', true).order('name'),
-          5000
-        );
-        if (prodError) throw prodError;
+  const isInitialLoad = (categoriesLoading || productsLoading) && products.length === 0;
+  const showCategorySkeleton = categoriesLoading && categories.length === 0;
 
-        const parsedProds = dbProducts ? dbProducts.map((p: any) => ({
-          ...p,
-          price: Number(p.price),
-          slug: sanitizeSlug(p.slug, p.name)
-        })) : [];
-        setFeaturedProducts(parsedProds);
-      } catch (err) {
-        console.error('Error fetching homepage data:', err);
-        setCategories([]);
-        setFeaturedProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const handleProductNavigate = useCallback(
+    (slug: string) => navigate(`/product/${slug}`),
+    [navigate]
+  );
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +121,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Categories */}
-      {categories.length > 0 && (
+      {(categories.length > 0 || showCategorySkeleton) && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
             <div>
@@ -157,26 +138,29 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => navigate(`/shop?category=${encodeURIComponent(cat.name)}`)}
-                className="bg-white rounded-xl overflow-hidden border border-gray-200 text-left group shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
-              >
-                <div className="aspect-square w-full overflow-hidden bg-gray-100">
-                  <img
-                    src={cat.image_url}
-                    alt={cat.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="p-3 sm:p-4">
-                  <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">{cat.name}</h3>
-                </div>
-              </button>
-            ))}
+            {showCategorySkeleton ? (
+              <CategoryCardSkeleton count={6} />
+            ) : (
+              categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => navigate(`/shop?category=${encodeURIComponent(cat.name)}`)}
+                  className="bg-white rounded-xl overflow-hidden border border-gray-200 text-left group shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+                >
+                  <div className="aspect-square w-full overflow-hidden bg-gray-100">
+                    <ProductImage
+                      src={cat.image_url}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-3 sm:p-4">
+                    <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">{cat.name}</h3>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </section>
       )}
@@ -197,9 +181,9 @@ export const Home: React.FC = () => {
           </Link>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-primary" />
+        {isInitialLoad ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
+            <ProductCardSkeleton count={5} />
           </div>
         ) : featuredProducts.length === 0 ? (
           <div className="text-center py-16 px-6 bg-gray-50 rounded-xl border border-gray-200">
@@ -209,38 +193,15 @@ export const Home: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
             {featuredProducts.map((product) => (
-              <article
+              <ProductCard
                 key={product.id}
-                className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 ease-out"
-                onClick={() => navigate(`/product/${product.slug}`)}
-              >
-                <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
-                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-primary text-white text-[10px] font-bold uppercase rounded tracking-wide">
-                    Featured
-                  </span>
-                  <img
-                    src={product.main_image_url}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-                    loading="lazy"
-                  />
-                </div>
-
-                <div className="p-4 sm:p-5 flex flex-col flex-grow">
-                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-1">
-                    {product.name}
-                  </h3>
-                  <ProductDescription description={product.description} className="text-xs" lines={3} />
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                    <span className="font-bold text-sm sm:text-base text-gray-900">₹{product.price}</span>
-                    {product.stock > 0 ? (
-                      <span className="text-[10px] sm:text-xs font-medium text-success">In stock</span>
-                    ) : (
-                      <span className="text-[10px] sm:text-xs font-medium text-gray-400">Out of stock</span>
-                    )}
-                  </div>
-                </div>
-              </article>
+                product={product}
+                onNavigate={handleProductNavigate}
+                showFeaturedBadge
+                stockVariant="text"
+                descriptionClassName="text-xs"
+                priceClassName="font-bold text-sm sm:text-base text-gray-900"
+              />
             ))}
           </div>
         )}

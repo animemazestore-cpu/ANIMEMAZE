@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, ArrowUpDown, X, Heart } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import type { Product, Category } from '../types/database';
-import { sanitizeSlug } from '../lib/persistence';
+import { Search, SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
+import type { Product } from '../types/database';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWishlistStore } from '../store/useWishlistStore';
+import { useCatalogStore } from '../store/useCatalogStore';
 import { Button } from '../components/common/Button';
-import { ProductDescription } from '../components/product/ProductDescription';
+import { ProductCard } from '../components/product/ProductCard';
+import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
 
 export const Shop: React.FC = () => {
   const navigate = useNavigate();
@@ -15,15 +15,24 @@ export const Shop: React.FC = () => {
   const { user } = useAuthStore();
   const { toggleWishlist, isInWishlist } = useWishlistStore();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const categories = useCatalogStore((s) => s.categories);
+  const products = useCatalogStore((s) => s.products);
+  const productsLoading = useCatalogStore((s) => s.productsLoading);
+  const initializeCatalog = useCatalogStore((s) => s.initializeCatalog);
 
   // Filters State
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || 'All');
+  const [featuredOnly, setFeaturedOnly] = useState(searchParams.get('featured') === 'true');
   const [priceRange, setPriceRange] = useState<number>(5000);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+
+  const isInitialLoad = productsLoading && products.length === 0;
+
+  useEffect(() => {
+    void initializeCatalog();
+  }, [initializeCatalog]);
 
   // Keep search input synced with searchParams
   useEffect(() => {
@@ -31,93 +40,51 @@ export const Shop: React.FC = () => {
     setSearch(urlSearch);
   }, [searchParams]);
 
-  useEffect(() => {
-    const fetchShopData = async () => {
-      const withTimeout = <T extends any>(promise: PromiseLike<T>, ms = 5000): Promise<T> => {
-        return Promise.race([
-          Promise.resolve(promise),
-          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
-        ]);
-      };
-
-      try {
-        // Always try Supabase first with cache-busting
-        const { data: dbCategories, error: catError } = await withTimeout(
-          supabase.from('categories').select('*'),
-          5000
-        );
-        if (catError) throw catError;
-        setCategories(dbCategories || []);
-
-        // Fetch products from DB with cache-busting
-        const { data: dbProducts, error: prodError } = await withTimeout(
-          supabase.from('products').select(`
-            *,
-            category:categories (*)
-          `),
-          5000
-        );
-        if (prodError) throw prodError;
-
-        const parsedProds = dbProducts ? dbProducts.map((p: any) => ({
-          ...p,
-          price: Number(p.price),
-          slug: sanitizeSlug(p.slug, p.name)
-        })) : [];
-        setProducts(parsedProds);
-      } catch (err) {
-        console.error('Error fetching shop details:', err);
-        setCategories([]);
-        setProducts([]);
-      }
-    };
-
-    fetchShopData();
-  }, []);
-
-  // Sync category state from URL if changed
+  // Sync category and featured state from URL
   useEffect(() => {
     const cat = searchParams.get('category');
     if (cat) {
       setSelectedCategory(cat);
     }
+    setFeaturedOnly(searchParams.get('featured') === 'true');
   }, [searchParams]);
 
-  // Apply filters and sorting locally
-  const filteredProducts = products
-    .filter((prod) => {
-      // 1. Search Query Match
-      if (search.trim()) {
-        const query = search.toLowerCase();
-        const matchesName = prod.name.toLowerCase().includes(query);
-        const matchesDesc = prod.description?.toLowerCase().includes(query) || false;
-        if (!matchesName && !matchesDesc) return false;
-      }
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter((prod) => {
+        if (featuredOnly && !prod.featured) return false;
 
-      // 2. Category Match
-      if (selectedCategory !== 'All') {
-        const categoryObj = categories.find((c) => c.name === selectedCategory || c.id === selectedCategory);
-        const catId = categoryObj?.id || selectedCategory;
-        if (prod.category_id !== catId && prod.category?.name !== selectedCategory) return false;
-      }
+        if (search.trim()) {
+          const query = search.toLowerCase();
+          const matchesName = prod.name.toLowerCase().includes(query);
+          const matchesDesc = prod.description?.toLowerCase().includes(query) || false;
+          if (!matchesName && !matchesDesc) return false;
+        }
 
-      // 3. Price Limit
-      if (prod.price > priceRange) return false;
+        if (selectedCategory !== 'All') {
+          const categoryObj = categories.find(
+            (c) => c.name === selectedCategory || c.id === selectedCategory
+          );
+          const catId = categoryObj?.id || selectedCategory;
+          if (prod.category_id !== catId && prod.category?.name !== selectedCategory) return false;
+        }
 
-      return true;
-    })
-    .sort((a, b) => {
-      // 4. Sort
-      if (sortBy === 'price-low') return a.price - b.price;
-      if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'popular') return b.featured === a.featured ? 0 : b.featured ? 1 : -1;
-      // Newest
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+        if (prod.price > priceRange) return false;
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'price-low') return a.price - b.price;
+        if (sortBy === 'price-high') return b.price - a.price;
+        if (sortBy === 'popular') return b.featured === a.featured ? 0 : b.featured ? 1 : -1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [products, search, selectedCategory, featuredOnly, priceRange, sortBy, categories]);
 
   const clearAllFilters = () => {
     setSearch('');
     setSelectedCategory('All');
+    setFeaturedOnly(false);
     setPriceRange(5000);
     setSortBy('newest');
     setSearchParams({});
@@ -135,6 +102,18 @@ export const Shop: React.FC = () => {
       setSearchParams(params.toString());
     }
   };
+
+  const handleProductNavigate = useCallback(
+    (slug: string) => navigate(`/product/${slug}`),
+    [navigate]
+  );
+
+  const handleToggleWishlist = useCallback(
+    (product: Product) => {
+      if (user) toggleWishlist(user.id, product);
+    },
+    [user, toggleWishlist]
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -325,7 +304,11 @@ export const Shop: React.FC = () => {
 
         {/* Product Grid Area */}
         <div className="flex-grow">
-          {filteredProducts.length === 0 ? (
+          {isInitialLoad ? (
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
+              <ProductCardSkeleton count={6} />
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
               <SlidersHorizontal className="h-10 w-10 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-gray-900 mb-1">No products found</h3>
@@ -334,65 +317,17 @@ export const Shop: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
-              {filteredProducts.map((product) => {
-                const liked = user ? isInWishlist(product.id) : false;
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => navigate(`/product/${product.slug}`)}
-                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 ease-out"
-                  >
-                    {/* Image */}
-                    <div className="aspect-square sm:aspect-[4/5] bg-gray-50 relative overflow-hidden">
-                      <img
-                        src={product.main_image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-                        loading="lazy"
-                      />
-                      {/* Wishlist Button */}
-                      {user && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWishlist(user.id, product);
-                          }}
-                          className={`absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 sm:p-2.5 rounded-full backdrop-blur-md border border-gray-200 hover:scale-110 transition-all ${
-                            liked ? 'bg-danger/10 text-danger border-danger/20' : 'bg-white text-gray-400 hover:text-gray-900'
-                          }`}
-                        >
-                          <Heart className={`h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 ${liked ? 'fill-current' : ''}`} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Details */}
-                    <div className="p-3 sm:p-5 flex flex-col flex-grow">
-                      <h3 className="font-bold text-xs sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2 mb-1">
-                        {product.name}
-                      </h3>
-                      <ProductDescription
-                        description={product.description}
-                        className="text-[10px] sm:text-xs"
-                        lines={3}
-                      />
-
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                        <span className="font-extrabold text-sm sm:text-lg text-gray-900">₹{product.price}</span>
-                        {product.stock > 0 ? (
-                          <span className="text-[8px] sm:text-[10px] font-bold text-success bg-success/10 border border-success/20 px-1.5 sm:px-2 py-0.5 rounded uppercase">
-                            In Stock
-                          </span>
-                        ) : (
-                          <span className="text-[8px] sm:text-[10px] font-bold text-danger bg-danger/10 border border-danger/20 px-1.5 sm:px-2 py-0.5 rounded uppercase">
-                            Out of Stock
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onNavigate={handleProductNavigate}
+                  showWishlist={Boolean(user)}
+                  isWishlisted={user ? isInWishlist(product.id) : false}
+                  onToggleWishlist={user ? handleToggleWishlist : undefined}
+                  descriptionClassName="text-[10px] sm:text-xs"
+                />
+              ))}
             </div>
           )}
         </div>
