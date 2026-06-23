@@ -9,10 +9,10 @@ interface FAQItemProps {
 const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="glass-card border border-white/5 rounded-xl mb-4 overflow-hidden transition-all duration-200">
+    <div className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm transition-all duration-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex justify-between items-center text-left text-white hover:bg-white/5 transition-colors focus:outline-none"
+        className="w-full px-6 py-4 flex justify-between items-center text-left text-gray-900 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
       >
         <span className="font-semibold text-sm sm:text-base">{question}</span>
         {isOpen ? (
@@ -22,7 +22,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
         )}
       </button>
       {isOpen && (
-        <div className="px-6 pb-5 pt-2 border-t border-white/5 bg-white/2 text-gray-300 text-sm leading-relaxed">
+        <div className="px-6 pb-5 pt-2 border-t border-gray-200 bg-gray-50 text-gray-600 text-sm leading-relaxed">
           {answer}
         </div>
       )}
@@ -60,10 +60,10 @@ export const FAQ: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-4xl font-extrabold tracking-tight text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+      <h1 className="text-4xl font-extrabold tracking-tight text-center text-gray-900 mb-4">
         Frequently Asked Questions
       </h1>
-      <p className="text-gray-400 text-center text-sm sm:text-base max-w-lg mx-auto mb-12">
+      <p className="text-gray-600 text-center text-sm sm:text-base max-w-lg mx-auto mb-12">
         Got questions? We've got answers. If you can't find what you are looking for, feel free to contact our customer support team.
       </p>
       <div className="mt-8">

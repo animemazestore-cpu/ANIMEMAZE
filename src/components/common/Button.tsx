@@ -22,14 +22,14 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:pointer-events-none';
+  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:pointer-events-none';
   
   const variants = {
     primary: 'btn-primary text-white',
-    secondary: 'btn-secondary text-white',
-    danger: 'bg-gradient-to-r from-danger to-red-600 text-white shadow-lg shadow-danger/30 hover:brightness-110',
-    outline: 'border border-primary text-primary hover:bg-primary/10 hover:shadow-glass-primary',
-    ghost: 'hover:bg-white/5 text-gray-300 hover:text-white',
+    secondary: 'bg-gray-100 text-gray-800 border border-gray-300 hover:bg-gray-200 shadow-sm',
+    danger: 'bg-danger text-white shadow-sm hover:bg-red-600',
+    outline: 'border border-primary text-primary hover:bg-primary/5 bg-white',
+    ghost: 'hover:bg-gray-100 text-gray-600 hover:text-gray-900',
   };
 
   const sizes = {
@@ -42,8 +42,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <motion.button
-      whileHover={disabled || loading ? {} : { scale: 1.02 }}
-      whileTap={disabled || loading ? {} : { scale: 0.98 }}
+      whileHover={disabled || loading ? {} : { scale: 1.01 }}
+      whileTap={disabled || loading ? {} : { scale: 0.99 }}
       disabled={disabled || loading}
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${widthStyle} ${className}`}
       {...props}

@@ -188,7 +188,7 @@ export const Dashboard: React.FC = () => {
     switch (status) {
       case 'PENDING_VERIFICATION': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
       case 'PAID': return 'text-success bg-success/10 border-success/20';
-      case 'PROCESSING': return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
+      case 'PROCESSING': return 'text-primary bg-primary/10 border-primary/20';
       case 'SHIPPED': return 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20';
       case 'DELIVERED': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
       case 'CANCELLED': return 'text-danger bg-danger/10 border-danger/20';
@@ -219,11 +219,11 @@ export const Dashboard: React.FC = () => {
         
         {/* Sidebar Navigation */}
         <aside className="w-full lg:w-64 flex-shrink-0">
-          <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             
             {/* User Profile Header */}
-            <div className="text-center space-y-3 pb-6 border-b border-white/5">
-              <div className="h-16 w-16 bg-primary/20 border border-primary/40 rounded-full flex items-center justify-center text-primary font-bold text-2xl mx-auto overflow-hidden">
+            <div className="text-center space-y-3 pb-6 border-b border-gray-200">
+              <div className="h-16 w-16 bg-primary/10 border border-primary/30 rounded-full flex items-center justify-center text-primary font-bold text-2xl mx-auto overflow-hidden">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -231,7 +231,7 @@ export const Dashboard: React.FC = () => {
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-white text-base truncate">{profile.full_name || 'Anime Fan'}</h3>
+                <h3 className="font-bold text-gray-900 text-base truncate">{profile.full_name || 'Anime Fan'}</h3>
                 <p className="text-xs text-gray-500 truncate">{user.email}</p>
               </div>
             </div>
@@ -241,7 +241,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={() => setActiveTab('profile')}
                 className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0 ${
-                  activeTab === 'profile' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  activeTab === 'profile' ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <User className="h-4.5 w-4.5" />
@@ -251,7 +251,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={() => setActiveTab('orders')}
                 className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0 ${
-                  activeTab === 'orders' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  activeTab === 'orders' ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <ShoppingBag className="h-4.5 w-4.5" />
@@ -261,7 +261,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={() => setActiveTab('wishlist')}
                 className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0 ${
-                  activeTab === 'wishlist' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  activeTab === 'wishlist' ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Heart className="h-4.5 w-4.5" />
@@ -271,7 +271,7 @@ export const Dashboard: React.FC = () => {
               <button
                 onClick={() => setActiveTab('settings')}
                 className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0 ${
-                  activeTab === 'settings' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  activeTab === 'settings' ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Settings className="h-4.5 w-4.5" />
@@ -285,26 +285,26 @@ export const Dashboard: React.FC = () => {
         <main className="flex-grow">
           {/* TAB 1: Profile */}
           {activeTab === 'profile' && (
-            <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/5 space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
                 <User className="h-5.5 w-5.5 text-primary" />
                 <span>Profile Details</span>
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-1">
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
                   <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Email Address</span>
-                  <p className="text-white font-medium">{user.email}</p>
+                  <p className="text-gray-900 font-medium">{user.email}</p>
                 </div>
                 
-                <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-1">
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
                   <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">User Role</span>
-                  <p className="text-white font-medium capitalize">{profile.role}</p>
+                  <p className="text-gray-900 font-medium capitalize">{profile.role}</p>
                 </div>
 
-                <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-1">
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
                   <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Account Created</span>
-                  <p className="text-white font-medium">
+                  <p className="text-gray-900 font-medium">
                     {profile.created_at && !isNaN(Date.parse(profile.created_at))
                       ? new Date(profile.created_at).toLocaleDateString(undefined, { dateStyle: 'long' })
                       : 'N/A'}
@@ -316,8 +316,8 @@ export const Dashboard: React.FC = () => {
 
           {/* TAB 2: Orders */}
           {activeTab === 'orders' && (
-            <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/5 space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
                 <ShoppingBag className="h-5.5 w-5.5 text-primary" />
                 <span>My Orders</span>
               </h2>
@@ -338,14 +338,14 @@ export const Dashboard: React.FC = () => {
                     const isExpanded = expandedOrderId === order.id;
                     const itemsList = order.items || [];
                     return (
-                      <div key={order.id} className="border border-white/5 rounded-xl bg-white/1 overflow-hidden transition-all">
+                      <div key={order.id} className="border border-gray-200 rounded-xl bg-white overflow-hidden transition-all">
                         {/* Summary Header */}
                         <div
                           onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                          className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer hover:bg-white/2"
+                          className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer hover:bg-gray-50"
                         >
                           <div className="space-y-1">
-                            <p className="text-xs text-gray-500">Order ID: <span className="font-bold text-gray-300">{order.id}</span></p>
+                            <p className="text-xs text-gray-500">Order ID: <span className="font-bold text-gray-900">{order.id}</span></p>
                             <p className="text-xs text-gray-400">Placed on: {order.created_at && !isNaN(Date.parse(order.created_at)) ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</p>
                           </div>
 
@@ -354,17 +354,16 @@ export const Dashboard: React.FC = () => {
                               {order.status.replace('_', ' ')}
                             </span>
                             
-                            <span className="text-sm font-extrabold text-white">₹{order.total_amount}</span>
+                            <span className="text-sm font-extrabold text-gray-900">₹{order.total_amount}</span>
                             {isExpanded ? <ChevronUp className="h-4.5 w-4.5 text-gray-400" /> : <ChevronDown className="h-4.5 w-4.5 text-gray-400" />}
                           </div>
                         </div>
 
                         {/* Order Items Details */}
                         {isExpanded && (
-                          <div className="p-5 bg-black/20 border-t border-white/5 space-y-6 text-sm">
-                            {/* Visual Shipment Tracking Stepper */}
-                            <div className="border-b border-white/5 pb-6">
-                              <h4 className="font-bold text-white mb-4 text-xs uppercase tracking-wider text-gray-400">Order Shipment Progress:</h4>
+                          <div className="p-5 bg-gray-50 border-t border-gray-200 space-y-6 text-sm">
+                            <div className="border-b border-gray-200 pb-6">
+                              <h4 className="font-bold text-gray-500 mb-4 text-xs uppercase tracking-wider">Order Shipment Progress:</h4>
                               <TrackingStepper 
                                 status={order.status} 
                                 trackingInfo={(order.shipping_address as any)?.tracking_info} 
@@ -372,35 +371,35 @@ export const Dashboard: React.FC = () => {
                             </div>
 
                             <div>
-                              <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400">Shipping Details:</h4>
-                              <p className="text-xs text-gray-300">{order.shipping_address?.fullName} | {order.shipping_address?.phone}</p>
-                              <p className="text-xs text-gray-400">{order.shipping_address?.address}, {order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
+                              <h4 className="font-bold text-gray-500 mb-2 text-xs uppercase tracking-wider">Shipping Details:</h4>
+                              <p className="text-xs text-gray-700">{order.shipping_address?.fullName} | {order.shipping_address?.phone}</p>
+                              <p className="text-xs text-gray-600">{order.shipping_address?.address}, {order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
                               {order.shipping_address?.transactionId && (
-                                <p className="text-xs text-amber-400 font-mono mt-1 select-all">UPI Transaction ID: {order.shipping_address.transactionId}</p>
+                                <p className="text-xs text-amber-600 font-mono mt-1 select-all">UPI Transaction ID: {order.shipping_address.transactionId}</p>
                               )}
                             </div>
 
                             <div className="space-y-2.5">
-                              <h4 className="font-bold text-white text-xs uppercase tracking-wider text-gray-400">Order Items:</h4>
+                              <h4 className="font-bold text-gray-500 text-xs uppercase tracking-wider">Order Items:</h4>
                               {itemsList.map((item, idx) => (
-                                <div key={item.id || `${order.id}-item-${idx}`} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                                <div key={item.id || `${order.id}-item-${idx}`} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
                                   <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-12 bg-surface rounded overflow-hidden flex-shrink-0">
+                                    <div className="w-10 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
                                       <img src={item.product?.main_image_url} alt="" className="w-full h-full object-cover" />
                                     </div>
                                     <div>
-                                      <p className="font-bold text-white text-xs sm:text-sm line-clamp-1">{item.product?.name || 'Anime Product'}</p>
+                                      <p className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1">{item.product?.name || 'Anime Product'}</p>
                                       <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
                                         <span>Qty: {item.quantity} x ₹{item.price}</span>
                                         {(item as any).selected_variant && (
-                                          <span className="px-1.5 py-0.5 rounded bg-primary/15 border border-primary/25 text-primary-light font-extrabold text-[9px]">
+                                          <span className="px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary font-extrabold text-[9px]">
                                             Size: {(item as any).selected_variant}
                                           </span>
                                         )}
                                       </div>
                                     </div>
                                   </div>
-                                  <span className="font-bold text-xs sm:text-sm text-white">₹{item.price * item.quantity}</span>
+                                  <span className="font-bold text-xs sm:text-sm text-gray-900">₹{item.price * item.quantity}</span>
                                 </div>
                               ))}
                             </div>
@@ -416,7 +415,7 @@ export const Dashboard: React.FC = () => {
 
                             {/* Request Replacement Button - only for DELIVERED orders */}
                             {order.status === 'DELIVERED' && (
-                              <div className="pt-3 border-t border-white/5">
+                              <div className="pt-3 border-t border-gray-200">
                                 <button
                                   onClick={() => {
                                     setReplacementOrderId(order.id);
@@ -444,8 +443,8 @@ export const Dashboard: React.FC = () => {
 
           {/* TAB 3: Wishlist */}
           {activeTab === 'wishlist' && (
-            <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/5 space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
                 <Heart className="h-5.5 w-5.5 text-primary" />
                 <span>My Wishlist</span>
               </h2>
@@ -459,8 +458,8 @@ export const Dashboard: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                   {wishlistItems.map((product) => (
-                    <div key={product.id} className="border border-white/5 rounded-xl bg-white/1 overflow-hidden flex flex-col group">
-                      <div className="aspect-[4/5] bg-surface relative overflow-hidden">
+                    <div key={product.id} className="border border-gray-200 rounded-xl bg-white overflow-hidden flex flex-col group shadow-sm">
+                      <div className="aspect-[4/5] bg-gray-100 relative overflow-hidden">
                         <img src={product.main_image_url} alt="" className="w-full h-full object-cover" />
                         <button
                           onClick={() => toggleWishlist(user.id, product)}
@@ -472,7 +471,7 @@ export const Dashboard: React.FC = () => {
 
                       <div className="p-4 flex flex-col flex-grow justify-between gap-3">
                         <div>
-                          <h4 className="font-bold text-white text-sm line-clamp-1 group-hover:text-primary-light">
+                          <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-primary">
                             <Link to={`/product/${product.slug}`}>{product.name}</Link>
                           </h4>
                           <p className="font-bold text-xs text-gray-400 mt-1">₹{product.price}</p>
@@ -500,14 +499,14 @@ export const Dashboard: React.FC = () => {
 
           {/* TAB 4: Settings (Edit Profile) */}
           {activeTab === 'settings' && (
-            <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/5 space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
                 <Settings className="h-5.5 w-5.5 text-primary" />
                 <span>Account Settings</span>
               </h2>
 
               {profileMsg && (
-                <div className="p-4 bg-primary/10 border border-primary/20 text-primary-light text-sm font-semibold rounded-xl">
+                <div className="p-4 bg-primary/10 border border-primary/20 text-primary text-sm font-semibold rounded-xl">
                   {profileMsg}
                 </div>
               )}
@@ -542,11 +541,11 @@ export const Dashboard: React.FC = () => {
 
       {/* Replacement Request Modal */}
       {replacementOrderId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg bg-surface border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
             <button
               onClick={() => setReplacementOrderId(null)}
-              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-white rounded-full border border-white/10 bg-background/50"
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-700 rounded-full border border-gray-200 bg-gray-50"
             >
               <X className="h-4 w-4" />
             </button>
@@ -556,7 +555,7 @@ export const Dashboard: React.FC = () => {
                 <RefreshCcw className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-base">Request Replacement</h3>
+                <h3 className="font-bold text-gray-900 text-base">Request Replacement</h3>
                 <p className="text-xs text-gray-500">Order #{replacementOrderId.slice(-8)}</p>
               </div>
             </div>
@@ -568,47 +567,47 @@ export const Dashboard: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-white font-bold">Request Submitted!</p>
+                <p className="text-gray-900 font-bold">Request Submitted!</p>
                 <p className="text-xs text-gray-400">Our team will review your request and get back to you shortly.</p>
               </div>
             ) : (
               <form onSubmit={handleReplacementSubmit} className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Reason for Replacement</label>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Reason for Replacement</label>
                   <select
                     value={replacementReason}
                     onChange={(e) => setReplacementReason(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary/50"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-gray-300 text-gray-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   >
-                    <option className="bg-surface">Damaged Item</option>
-                    <option className="bg-surface">Wrong Item Received</option>
-                    <option className="bg-surface">Missing Item</option>
-                    <option className="bg-surface">Poor Quality</option>
-                    <option className="bg-surface">Other</option>
+                    <option>Damaged Item</option>
+                    <option>Wrong Item Received</option>
+                    <option>Missing Item</option>
+                    <option>Poor Quality</option>
+                    <option>Other</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Describe the Issue</label>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Describe the Issue</label>
                   <textarea
                     required
                     rows={3}
                     placeholder="Please describe what went wrong in detail..."
                     value={replacementDesc}
                     onChange={(e) => setReplacementDesc(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 resize-none"
+                    className="w-full px-4 py-3 rounded-xl text-sm bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Attach Photo (Optional)</label>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Attach Photo (Optional)</label>
                   {replacementPhoto ? (
                     <div className="flex items-center gap-3">
-                      <img src={URL.createObjectURL(replacementPhoto)} alt="" className="w-16 h-16 object-cover rounded-xl border border-white/10" />
+                      <img src={URL.createObjectURL(replacementPhoto)} alt="" className="w-16 h-16 object-cover rounded-xl border border-gray-200" />
                       <button type="button" onClick={() => setReplacementPhoto(null)} className="text-xs text-danger hover:underline">Remove</button>
                     </div>
                   ) : (
-                    <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-white/15 hover:border-white/30 cursor-pointer bg-white/2 hover:bg-white/5 transition-all">
+                    <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-gray-300 hover:border-primary cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all">
                       <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>

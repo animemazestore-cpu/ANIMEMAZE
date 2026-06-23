@@ -204,8 +204,8 @@ export const ProductDetail: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <ShieldAlert className="h-12 w-12 text-danger mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Product Not Found</h2>
-        <p className="text-gray-400 mb-6">The product you are looking for does not exist or has been removed.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
+        <p className="text-gray-600 mb-6">The product you are looking for does not exist or has been removed.</p>
         <Link to="/shop">
           <Button>Back to Shop</Button>
         </Link>
@@ -501,17 +501,17 @@ export const ProductDetail: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-12 sm:space-y-20">
       {/* Breadcrumb */}
       <nav className="flex items-center space-x-1.5 text-xs sm:text-sm text-gray-500">
-        <Link to="/" className="hover:text-white transition-colors">Home</Link>
+        <Link to="/" className="hover:text-gray-900 transition-colors">Home</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <Link to="/shop" className="hover:text-white transition-colors">Shop</Link>
+        <Link to="/shop" className="hover:text-gray-900 transition-colors">Shop</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-gray-300 truncate max-w-xs">{product.name}</span>
+        <span className="text-gray-600 truncate max-w-xs">{product.name}</span>
       </nav>
       {/* Main product display */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {/* Left Side: Images */}
         <div className="lg:col-span-5 flex flex-col space-y-3">
-          <div className="aspect-square sm:aspect-[4/5] lg:aspect-square bg-surface rounded-xl sm:rounded-2xl overflow-hidden border border-white/5 relative lg:max-h-[440px]">
+          <div className="aspect-square sm:aspect-[4/5] lg:aspect-square bg-gray-50 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 relative lg:max-h-[440px]">
             <img
               src={activeImage}
               alt={product.name}
@@ -523,8 +523,8 @@ export const ProductDetail: React.FC = () => {
             <div className="flex space-x-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setActiveImage(product.main_image_url)}
-                className={`w-14 h-14 sm:w-16 sm:h-16 bg-surface rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
-                  activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-white/5 hover:border-white/20'
+                className={`w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
+                  activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <img src={product.main_image_url} alt="" className="w-full h-full object-cover" />
@@ -533,8 +533,8 @@ export const ProductDetail: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => setActiveImage(img)}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 bg-surface rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
-                    activeImage === img ? 'border-primary scale-95' : 'border-white/5 hover:border-white/20'
+                  className={`w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
+                    activeImage === img ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" />
@@ -547,11 +547,11 @@ export const ProductDetail: React.FC = () => {
         {/* Right Side: Details & Add to Cart */}
         <div className="lg:col-span-7 space-y-6">
           <div className="space-y-2">
-            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-xs font-semibold uppercase">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase">
               <Sparkles className="h-3 w-3" />
               <span>Premium Collection</span>
             </span>
-            <h1 className="text-3xl font-extrabold text-white leading-tight">{product.name}</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
           </div>
 
           {/* Rating Summary */}
@@ -567,20 +567,20 @@ export const ProductDetail: React.FC = () => {
                   />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-white">{averageRating} out of 5</span>
+              <span className="text-sm font-semibold text-gray-900">{averageRating} out of 5</span>
               <span className="text-xs text-gray-500">({reviews.length} reviews)</span>
             </div>
           )}
 
-          <div className="text-2xl font-extrabold text-white">₹{product.price}</div>
+          <div className="text-2xl font-extrabold text-gray-900">₹{product.price}</div>
 
-          <p className="text-gray-400 text-sm leading-relaxed border-t border-b border-white/5 py-4">
+          <p className="text-gray-600 text-sm leading-relaxed border-t border-b border-gray-200 py-4">
             {product.description}
           </p>
 
           {/* Stock state */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400 font-medium">Availability:</span>
+            <span className="text-gray-600 font-medium">Availability:</span>
             {isOutOfStock ? (
               <span className="font-semibold text-danger bg-danger/10 border border-danger/20 px-2 py-0.5 rounded uppercase text-xs">
                 Out of Stock
@@ -600,9 +600,9 @@ export const ProductDetail: React.FC = () => {
           {!isOutOfStock && (
             <div className="space-y-4 pt-4">
               {isApparelOrMerch && (
-                <div className="space-y-3 border-b border-white/5 pb-4 mb-4">
+                <div className="space-y-3 border-b border-gray-200 pb-4 mb-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Select Size</span>
+                    <span className="text-gray-600 text-sm font-semibold uppercase tracking-wider">Select Size</span>
                     {selectedSize && (
                       <span className="text-xs text-primary font-bold bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">Size: {selectedSize}</span>
                     )}
@@ -615,8 +615,8 @@ export const ProductDetail: React.FC = () => {
                         onClick={() => setSelectedSize(size)}
                         className={`w-12 h-12 rounded-xl text-sm font-bold border transition-all flex items-center justify-center ${
                           selectedSize === size
-                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25 scale-95'
-                            : 'bg-surface border-white/10 text-gray-300 hover:border-white/30'
+                            ? 'bg-primary text-white border-primary shadow-sm scale-95'
+                            : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
                         }`}
                       >
                         {size}
@@ -627,18 +627,18 @@ export const ProductDetail: React.FC = () => {
               )}
 
               <div className="flex items-center space-x-4">
-                <span className="text-gray-400 text-sm font-medium">Quantity:</span>
-                <div className="flex items-center border border-white/10 rounded-lg bg-surface">
+                <span className="text-gray-600 text-sm font-medium">Quantity:</span>
+                <div className="flex items-center border border-gray-300 rounded-lg bg-white">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3.5 py-1.5 text-gray-400 hover:text-white transition-colors"
+                    className="px-3.5 py-1.5 text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     -
                   </button>
-                  <span className="px-4 text-sm font-bold text-white">{quantity}</span>
+                  <span className="px-4 text-sm font-bold text-gray-900">{quantity}</span>
                   <button
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="px-3.5 py-1.5 text-gray-400 hover:text-white transition-colors"
+                    className="px-3.5 py-1.5 text-gray-600 hover:text-gray-900 transition-colors"
                   >
                     +
                   </button>
@@ -665,7 +665,7 @@ export const ProductDetail: React.FC = () => {
                   <button
                     onClick={() => toggleWishlist(user.id, product)}
                     className={`px-4 rounded-xl border backdrop-blur-md transition-all flex items-center justify-center ${
-                      liked ? 'bg-danger/25 text-danger border-danger/30' : 'bg-surface border-white/10 text-gray-400 hover:text-white'
+                      liked ? 'bg-danger/10 text-danger border-danger/20' : 'bg-white border-gray-300 text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <Heart className={`h-5 w-5 ${liked ? 'fill-current' : ''}`} />
@@ -678,18 +678,18 @@ export const ProductDetail: React.FC = () => {
       </div>
 
       {/* Reviews and Q&A Tabs */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 border-t border-white/5 pt-16">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 border-t border-gray-200 pt-16">
         {/* Left Side: Reviews (8 cols on large screen) */}
         <div className="lg:col-span-8 space-y-10">
-          <h2 className="text-2xl font-extrabold text-white flex items-center space-x-2">
+          <h2 className="text-2xl font-extrabold text-gray-900 flex items-center space-x-2">
             <Star className="h-6 w-6 text-yellow-500 fill-current" />
             <span>Customer Reviews</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 bg-surface/50 border border-white/5 p-6 sm:p-8 rounded-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 bg-gray-50 border border-gray-200 p-6 sm:p-8 rounded-2xl">
             {/* Rating summary chart */}
-            <div className="md:col-span-4 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 md:pr-6">
-              <span className="text-5xl font-extrabold text-white">{averageRating}</span>
+            <div className="md:col-span-4 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0 md:pr-6">
+              <span className="text-5xl font-extrabold text-gray-900">{averageRating}</span>
               <div className="flex text-yellow-500 my-2">
                 {[...Array(5)].map((_, i) => (
                   <Star
@@ -700,7 +700,7 @@ export const ProductDetail: React.FC = () => {
                   />
                 ))}
               </div>
-              <span className="text-xs text-gray-400">Based on {reviews.length} ratings</span>
+              <span className="text-xs text-gray-500">Based on {reviews.length} ratings</span>
             </div>
 
             {/* Distribution bars */}
@@ -708,9 +708,9 @@ export const ProductDetail: React.FC = () => {
               {[5, 4, 3, 2, 1].map((stars) => {
                 const percent = getRatingPercentage(stars);
                 return (
-                  <div key={stars} className="flex items-center space-x-3 text-xs text-gray-400">
+                  <div key={stars} className="flex items-center space-x-3 text-xs text-gray-500">
                     <span className="w-10 text-right">{stars} Star</span>
-                    <div className="flex-grow h-2.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="flex-grow h-2.5 bg-gray-200 rounded-full overflow-hidden">
                       <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${percent}%` }} />
                     </div>
                     <span className="w-8 text-left">{percent}%</span>
@@ -722,10 +722,10 @@ export const ProductDetail: React.FC = () => {
 
           {/* Form to submit review */}
           {user && (
-            <form onSubmit={handleReviewSubmit} className="glass-card p-6 rounded-2xl border border-white/5 space-y-4">
-              <h3 className="font-bold text-lg text-white">Share Your Review</h3>
+            <form onSubmit={handleReviewSubmit} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+              <h3 className="font-bold text-lg text-gray-900">Share Your Review</h3>
               {userCanReview && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600">
                   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
                   Verified Purchase
                 </span>
@@ -733,7 +733,7 @@ export const ProductDetail: React.FC = () => {
               
               {/* Rating Input */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-400 font-medium">Your Rating:</span>
+                <span className="text-sm text-gray-600 font-medium">Your Rating:</span>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((stars) => (
                     <button
@@ -760,18 +760,18 @@ export const ProductDetail: React.FC = () => {
                   placeholder="What did you like or dislike? Write your detailed review here..."
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm glass-input placeholder-gray-500 focus:outline-none resize-none"
+                  className="w-full px-4 py-3 rounded-xl text-sm bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-primary resize-none"
                 />
               </div>
 
               {/* Image upload */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 block">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 block">
                   Add Photos (Up to 5)
                 </span>
                 <div className="flex flex-wrap gap-3 items-center">
-                  <label className="w-16 h-16 rounded-xl border border-white/10 hover:border-white/30 border-dashed flex flex-col items-center justify-center cursor-pointer bg-white/2 hover:bg-white/5 transition-all">
-                    <Plus className="h-5 w-5 text-gray-400" />
+                  <label className="w-16 h-16 rounded-xl border border-gray-300 hover:border-gray-400 border-dashed flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all">
+                    <Plus className="h-5 w-5 text-gray-500" />
                     <input
                       type="file"
                       accept="image/*"
@@ -781,7 +781,7 @@ export const ProductDetail: React.FC = () => {
                     />
                   </label>
                   {reviewImages.map((file, idx) => (
-                    <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 relative">
+                    <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden border border-gray-300 relative">
                       <img
                         src={URL.createObjectURL(file)}
                         alt=""
@@ -805,16 +805,16 @@ export const ProductDetail: React.FC = () => {
 
           {/* Review Filter and Sorting controls */}
           {reviews.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-4">
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase">Filter:</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Filter:</span>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setRatingFilter('All')}
                     className={`px-3 py-1 rounded-full text-xs font-medium border ${
                       ratingFilter === 'All'
-                        ? 'bg-primary/20 border-primary text-primary-light'
-                        : 'border-white/5 hover:border-white/10 text-gray-400'
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'border-gray-300 hover:border-gray-400 text-gray-600'
                     }`}
                   >
                     All Reviews
@@ -825,8 +825,8 @@ export const ProductDetail: React.FC = () => {
                       onClick={() => setRatingFilter(stars)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border ${
                         ratingFilter === stars
-                          ? 'bg-primary/20 border-primary text-primary-light'
-                          : 'border-white/5 hover:border-white/10 text-gray-400'
+                          ? 'bg-primary/10 border-primary text-primary'
+                          : 'border-gray-300 hover:border-gray-400 text-gray-600'
                       }`}
                     >
                       {stars} Star
@@ -838,12 +838,12 @@ export const ProductDetail: React.FC = () => {
               <select
                 value={reviewSort}
                 onChange={(e) => setReviewSort(e.target.value as any)}
-                className="bg-white/5 border border-white/10 text-xs text-white rounded-lg py-1.5 px-2.5 focus:outline-none"
+                className="bg-white border border-gray-300 text-xs text-gray-900 rounded-lg py-1.5 px-2.5 focus:outline-none"
               >
-                <option value="newest" className="bg-surface">Newest Reviews</option>
-                <option value="oldest" className="bg-surface">Oldest Reviews</option>
-                <option value="highest" className="bg-surface">Highest Rating</option>
-                <option value="lowest" className="bg-surface">Lowest Rating</option>
+                <option value="newest" className="bg-white">Newest Reviews</option>
+                <option value="oldest" className="bg-white">Oldest Reviews</option>
+                <option value="highest" className="bg-white">Highest Rating</option>
+                <option value="lowest" className="bg-white">Lowest Rating</option>
               </select>
             </div>
           )}
@@ -854,14 +854,14 @@ export const ProductDetail: React.FC = () => {
               <p className="text-gray-500 text-sm italic">No reviews found matching the filters.</p>
             ) : (
               displayedReviews.map((review) => (
-                <div key={review.id} className="border-b border-white/5 pb-6 space-y-3">
+                <div key={review.id} className="border-b border-gray-200 pb-6 space-y-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-3">
-                      <div className="h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-bold text-gray-300">
+                      <div className="h-9 w-9 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center font-bold text-gray-600">
                         {review.user_name[0].toUpperCase()}
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">{review.user_name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm">{review.user_name}</h4>
                         <div className="flex items-center space-x-2 mt-0.5">
                           <div className="flex text-yellow-500">
                             {[...Array(5)].map((_, i) => (
@@ -886,7 +886,7 @@ export const ProductDetail: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-300 leading-relaxed font-light pl-12">
+                  <p className="text-sm text-gray-600 leading-relaxed font-light pl-12">
                     {review.review_text}
                   </p>
 
@@ -894,7 +894,7 @@ export const ProductDetail: React.FC = () => {
                   {review.review_images && review.review_images.length > 0 && (
                     <div className="flex gap-2 pl-12">
                       {review.review_images.map((img, idx) => (
-                        <a key={idx} href={img} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-white/5 hover:opacity-80 transition-opacity">
+                        <a key={idx} href={img} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity">
                           <img src={img} alt="" className="w-full h-full object-cover" />
                         </a>
                       ))}
@@ -906,7 +906,7 @@ export const ProductDetail: React.FC = () => {
                     <button
                       onClick={() => handleLikeReview(review.id)}
                       className={`flex items-center space-x-1.5 text-xs ${
-                        review.is_liked_by_user ? 'text-primary' : 'text-gray-500 hover:text-white'
+                        review.is_liked_by_user ? 'text-primary' : 'text-gray-500 hover:text-gray-900'
                       }`}
                     >
                       <ThumbsUp className="h-3.5 w-3.5" />
@@ -920,8 +920,8 @@ export const ProductDetail: React.FC = () => {
         </div>
 
         {/* Right Side: Product Q&A (4 cols on large screen) */}
-        <div className="lg:col-span-4 space-y-8 bg-surface/30 border border-white/5 p-6 rounded-2xl h-fit">
-          <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+        <div className="lg:col-span-4 space-y-8 bg-gray-50 border border-gray-200 p-6 rounded-2xl h-fit">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
             <HelpCircle className="h-5.5 w-5.5 text-secondary" />
             <span>Product Q&A</span>
           </h2>
@@ -952,23 +952,23 @@ export const ProductDetail: React.FC = () => {
           )}
 
           {/* Question Answers List */}
-          <div className="space-y-5 divide-y divide-white/5 pt-4">
+          <div className="space-y-5 divide-y divide-gray-200 pt-4">
             {questions.length === 0 ? (
               <p className="text-xs text-gray-500 italic py-2">No questions asked yet. Be the first to ask!</p>
             ) : (
               questions.map((q) => (
                 <div key={q.id} className="pt-4 first:pt-0 space-y-2">
-                  <div className="text-xs font-bold text-white flex items-start gap-1">
+                  <div className="text-xs font-bold text-gray-900 flex items-start gap-1">
                     <span className="text-secondary flex-shrink-0">Q:</span>
                     <span>{q.question}</span>
                   </div>
                   {q.answer ? (
-                    <div className="text-xs text-gray-400 pl-4 border-l border-primary/30 flex items-start gap-1">
+                    <div className="text-xs text-gray-600 pl-4 border-l border-primary/30 flex items-start gap-1">
                       <span className="text-primary font-bold flex-shrink-0">A:</span>
                       <p className="leading-relaxed">{q.answer}</p>
                     </div>
                   ) : (
-                    <div className="text-[10px] text-gray-600 pl-4 border-l border-white/5 italic">
+                    <div className="text-[10px] text-gray-500 pl-4 border-l border-gray-200 italic">
                       Waiting for admin response...
                     </div>
                   )}
@@ -981,8 +981,8 @@ export const ProductDetail: React.FC = () => {
 
       {/* Related Products Carousel/Grid */}
       {relatedProducts.length > 0 && (
-        <section className="space-y-8 border-t border-white/5 pt-16">
-          <h2 className="text-2xl font-extrabold text-white">Related Merchandise</h2>
+        <section className="space-y-8 border-t border-gray-200 pt-16">
+          <h2 className="text-2xl font-extrabold text-gray-900">Related Merchandise</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedProducts.map((prod) => (
               <div
@@ -991,15 +991,15 @@ export const ProductDetail: React.FC = () => {
                   navigate(`/product/${prod.slug}`);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="glass-card rounded-xl border border-white/5 overflow-hidden flex flex-col group cursor-pointer hover:border-primary/20 transition-all duration-300"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer hover:border-primary transition-all duration-300 shadow-sm hover:shadow-md"
               >
-                <div className="aspect-[4/5] bg-surface overflow-hidden relative">
+                <div className="aspect-[4/5] bg-gray-50 overflow-hidden relative">
                   <img src={prod.main_image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </div>
                 <div className="p-4 flex flex-col flex-grow">
-                  <h3 className="font-bold text-sm text-white group-hover:text-primary-light transition-colors truncate">{prod.name}</h3>
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/5">
-                    <span className="font-bold text-sm text-white">₹{prod.price}</span>
+                  <h3 className="font-bold text-sm text-gray-900 group-hover:text-primary transition-colors truncate">{prod.name}</h3>
+                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
+                    <span className="font-bold text-sm text-gray-900">₹{prod.price}</span>
                     <span className="text-[9px] font-bold text-success">In Stock</span>
                   </div>
                 </div>

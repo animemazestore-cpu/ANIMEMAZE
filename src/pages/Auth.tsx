@@ -170,10 +170,10 @@ export const Auth: React.FC = () => {
       <div className="max-w-md w-full">
         {!verificationPendingEmail && !isResetMode && (
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">
               {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back Otaku' : 'Join AnimeMaze'}
             </h2>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-gray-600">
               {isForgotPassword
                 ? 'Enter your email to receive a recovery link'
                 : isLogin
@@ -184,19 +184,15 @@ export const Auth: React.FC = () => {
         )}
 
         {verificationPendingEmail ? (
-          <div className="glass-card p-8 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden text-center space-y-6">
-            {/* Subtle background glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
-
+          <div className="glass-card p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-6">
             <div className="w-16 h-16 bg-primary/10 border border-primary/20 text-primary rounded-full flex items-center justify-center mx-auto">
-              <Mail className="h-8 w-8 animate-pulse text-secondary-light" />
+              <Mail className="h-8 w-8 text-primary" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-white">Verify Your Email</h2>
-              <p className="text-sm text-gray-400">
-                We've sent a verification link to <strong className="text-white">{verificationPendingEmail}</strong>.
+              <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
+              <p className="text-sm text-gray-600">
+                We've sent a verification link to <strong className="text-gray-900">{verificationPendingEmail}</strong>.
               </p>
               <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
                 Please click the link in the email to activate your AnimeMaze account.
@@ -215,7 +211,7 @@ export const Auth: React.FC = () => {
               </div>
             )}
 
-            <div className="pt-4 space-y-3 relative z-10">
+            <div className="pt-4 space-y-3">
               <Button onClick={handleResendVerification} fullWidth loading={resending} variant="outline">
                 Resend Verification Link
               </Button>
@@ -225,20 +221,16 @@ export const Auth: React.FC = () => {
                   setIsLogin(true);
                   setMessage(null);
                 }}
-                className="text-xs text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-1.5 mx-auto"
+                className="text-xs text-gray-500 hover:text-gray-900 transition-colors flex items-center justify-center gap-1.5 mx-auto"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Sign In
               </button>
             </div>
           </div>
         ) : isResetMode ? (
-          <div className="glass-card p-8 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
-            {/* Subtle background glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
-
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-secondary-light" />
+          <div className="glass-card p-8 rounded-2xl border border-gray-200 shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
               <span>Set New Password</span>
             </h3>
 
@@ -254,7 +246,7 @@ export const Auth: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <Input
                 label="New Password"
                 type="password"
@@ -289,11 +281,7 @@ export const Auth: React.FC = () => {
             </form>
           </div>
         ) : (
-          <div className="glass-card p-8 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
-            {/* Subtle background glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
-
+          <div className="glass-card p-8 rounded-2xl border border-gray-200 shadow-sm">
             {message && (
               <div
                 className={`mb-6 p-4 rounded-lg text-sm border font-medium ${
@@ -306,7 +294,7 @@ export const Auth: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <AnimatePresence mode="wait">
                 {!isLogin && !isForgotPassword && (
                   <motion.div
@@ -353,7 +341,7 @@ export const Auth: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsForgotPassword(true)}
-                    className="text-xs text-secondary hover:text-white transition-colors"
+                    className="text-xs text-primary hover:text-primary-dark transition-colors"
                   >
                     Forgot password?
                   </button>
@@ -381,7 +369,7 @@ export const Auth: React.FC = () => {
             </form>
 
             {/* Toggle Links */}
-            <div className="mt-6 pt-6 border-t border-white/5 text-center text-sm text-gray-400 relative z-10">
+            <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
               {isForgotPassword ? (
                 <button
                   onClick={() => {
@@ -389,7 +377,7 @@ export const Auth: React.FC = () => {
                     setIsLogin(true);
                     setMessage(null);
                   }}
-                  className="text-primary hover:text-white font-medium transition-colors"
+                  className="text-primary hover:text-primary-dark font-medium transition-colors"
                 >
                   Back to Sign In
                 </button>
@@ -401,7 +389,7 @@ export const Auth: React.FC = () => {
                       setIsLogin(false);
                       setMessage(null);
                     }}
-                    className="text-primary hover:text-white font-medium transition-colors"
+                    className="text-primary hover:text-primary-dark font-medium transition-colors"
                   >
                     Sign Up
                   </button>
@@ -414,7 +402,7 @@ export const Auth: React.FC = () => {
                       setIsLogin(true);
                       setMessage(null);
                     }}
-                    className="text-primary hover:text-white font-medium transition-colors"
+                    className="text-primary hover:text-primary-dark font-medium transition-colors"
                   >
                     Sign In
                   </button>

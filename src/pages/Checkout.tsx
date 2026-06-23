@@ -231,9 +231,9 @@ export const Checkout: React.FC = () => {
         <div className="w-16 h-16 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto text-success">
           <Check className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Order Placed Successfully!</h2>
-        <p className="text-gray-400 text-sm leading-relaxed">
-          Your order ID is <strong className="text-white">{orderCreatedId}</strong>. We have received your UPI screenshot and are currently verifying the payment. You can track this in your dashboard.
+        <h2 className="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. We have received your UPI screenshot and are currently verifying the payment. You can track this in your dashboard.
         </p>
         <div className="pt-4 flex gap-4">
           <Button fullWidth onClick={() => navigate('/dashboard')}>
@@ -249,7 +249,7 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-3xl font-extrabold text-white mb-8">Secure Checkout</h1>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Secure Checkout</h1>
 
       {errorMsg && (
         <div className="mb-6 p-4 bg-danger/10 border border-danger/30 text-danger rounded-xl text-sm font-semibold">
@@ -259,8 +259,8 @@ export const Checkout: React.FC = () => {
 
       <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Left Side: Shipping Address */}
-        <div className="lg:col-span-7 space-y-6 bg-surface/50 border border-white/5 p-6 sm:p-8 rounded-2xl">
-          <h2 className="text-xl font-bold text-white mb-4">1. Shipping Information</h2>
+        <div className="lg:col-span-7 space-y-6 bg-white border border-gray-200 p-6 sm:p-8 rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">1. Shipping Information</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
@@ -335,18 +335,18 @@ export const Checkout: React.FC = () => {
         {/* Right Side: Payment details */}
         <div className="lg:col-span-5 space-y-6">
           {/* Order total amount card */}
-          <div className="glass-card p-6 rounded-2xl border border-white/5">
-            <h2 className="text-lg font-bold text-white mb-4">Order Summary</h2>
-            <div className="space-y-2 text-sm text-gray-400 border-b border-white/5 pb-4 mb-4">
+          <div className="glass-card p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
+            <div className="space-y-2 text-sm text-gray-600 border-b border-gray-200 pb-4 mb-4">
               {items.map((item) => (
                 <div key={`${item.product.id}-${item.selectedVariant || ''}`} className="flex justify-between items-center text-xs">
                   <div className="flex flex-col truncate max-w-[200px]">
                     <span className="truncate">{item.product.name} (x{item.quantity})</span>
                     {item.selectedVariant && (
-                      <span className="text-[10px] text-primary-light font-bold">Size: {item.selectedVariant}</span>
+                      <span className="text-[10px] text-primary font-bold">Size: {item.selectedVariant}</span>
                     )}
                   </div>
-                  <span className="text-white">₹{item.product.price * item.quantity}</span>
+                  <span className="text-gray-900">₹{item.product.price * item.quantity}</span>
                 </div>
               ))}
 
@@ -362,32 +362,32 @@ export const Checkout: React.FC = () => {
                 <span>{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
               </div>
             </div>
-            <div className="flex justify-between items-center font-extrabold text-base text-white">
+            <div className="flex justify-between items-center font-extrabold text-base text-gray-900">
               <span>Grand Total:</span>
-              <span className="text-secondary-light">₹{total}</span>
+              <span className="text-secondary">₹{total}</span>
             </div>
           </div>
 
           {/* UPI Payment display */}
-          <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-6">
-            <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-              <CreditCard className="h-5 w-5 text-primary-light" />
+          <div className="glass-card p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+              <CreditCard className="h-5 w-5 text-primary" />
               <span>2. UPI Payment</span>
             </h2>
 
             {/* instructions */}
-            <div className="p-4 bg-white/2 rounded-xl border border-white/5 text-xs text-gray-400 space-y-2">
-              <p className="font-bold text-white">Instructions:</p>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 space-y-2">
+              <p className="font-bold text-gray-900">Instructions:</p>
               <ol className="list-decimal pl-4 space-y-1">
                 <li>Scan the QR code or copy the UPI ID below.</li>
-                <li>Pay the exact amount: <strong className="text-white">₹{total}</strong></li>
+                <li>Pay the exact amount: <strong className="text-gray-900">₹{total}</strong></li>
                 <li>Take a screenshot of the successful payment.</li>
                 <li>Upload the screenshot and press "Place Order".</li>
               </ol>
             </div>
 
             {/* QR display */}
-            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[220px] mx-auto border border-white/10">
+            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[220px] mx-auto border border-gray-200">
               <img src={qrCodeUrl} alt="UPI QR Code" className="w-full h-auto" />
               <span className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-wide">
                 Scan using GPay / PhonePe / Paytm
@@ -396,7 +396,7 @@ export const Checkout: React.FC = () => {
 
             <div className="text-center space-y-1">
               <p className="text-xs text-gray-500">Merchant UPI ID:</p>
-              <p className="text-sm font-bold text-secondary-light select-all">{upiId}</p>
+              <p className="text-sm font-bold text-secondary select-all">{upiId}</p>
             </div>
 
             {/* Screenshot file upload */}
@@ -406,7 +406,7 @@ export const Checkout: React.FC = () => {
               </label>
 
               {screenshotPreview ? (
-                <div className="relative rounded-xl overflow-hidden border border-white/10 aspect-video bg-background flex items-center justify-center">
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100 flex items-center justify-center">
                   <img src={screenshotPreview} alt="Screenshot Preview" className="h-full object-contain" />
                   <button
                     type="button"
@@ -420,9 +420,9 @@ export const Checkout: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <label className="border border-white/10 hover:border-white/20 border-dashed rounded-xl p-8 bg-white/2 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                <label className="border border-gray-300 hover:border-gray-400 border-dashed rounded-xl p-8 bg-gray-50 flex flex-col items-center justify-center cursor-pointer transition-colors">
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-xs text-gray-300 font-medium">Click to upload screenshot</span>
+                  <span className="text-xs text-gray-400 font-medium">Click to upload screenshot</span>
                   <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, JPEG</span>
                   <input
                     type="file"

@@ -7,8 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#0B0F19",
-        surface: "#111827",
+        background: "#FFFFFF",
+        surface: "#F8F9FA",
+        'surface-dark': "#F3F4F6",
         primary: {
           DEFAULT: "#8B5CF6",
           dark: "#7C3AED",
@@ -21,18 +22,21 @@ export default {
         },
         success: "#22C55E",
         danger: "#EF4444",
+        text: {
+          primary: "#111827",
+          secondary: "#4B5563",
+          muted: "#9CA3AF",
+        }
       },
       fontFamily: {
         sans: ['Outfit', 'Inter', 'sans-serif'],
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-        'glass-primary': '0 8px 32px 0 rgba(139, 92, 246, 0.15)',
-        'glass-secondary': '0 8px 32px 0 rgba(6, 182, 212, 0.15)',
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'button': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'button-hover': '0 4px 6px -1px rgba(139, 92, 246, 0.3)',
       },
-      backdropBlur: {
-        'glass': '8px',
-      }
     },
   },
   plugins: [],

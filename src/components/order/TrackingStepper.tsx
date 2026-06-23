@@ -65,8 +65,8 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
 
   if (isCancelled) {
     return (
-      <div className="p-4 bg-danger/10 border border-danger/30 rounded-2xl flex items-center space-x-3 text-danger text-sm">
-        <AlertCircle className="h-5 w-5 flex-shrink-0 animate-pulse" />
+      <div className="p-4 bg-danger/10 border border-danger/30 rounded-xl flex items-center space-x-3 text-danger text-sm">
+        <AlertCircle className="h-5 w-5 flex-shrink-0" />
         <div>
           <p className="font-bold">Order Cancelled</p>
           <p className="text-xs text-danger/80">This order has been cancelled. If payment was made, your refund is being processed manually.</p>
@@ -77,12 +77,10 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
 
   return (
     <div className="space-y-8 w-full py-4">
-      {/* Visual Line Stepper */}
       <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-8 md:gap-4">
-        {/* Connection Line (Desktop) */}
-        <div className="absolute left-6 right-6 top-[22px] h-0.5 bg-white/5 hidden md:block z-0">
+        <div className="absolute left-6 right-6 top-[22px] h-0.5 bg-gray-200 hidden md:block z-0">
           <div 
-            className="h-full bg-gradient-to-r from-primary via-purple-500 to-secondary transition-all duration-1000"
+            className="h-full bg-primary transition-all duration-1000"
             style={{ width: `${(currentIndex / 4) * 100}%` }}
           />
         </div>
@@ -94,14 +92,13 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
 
           return (
             <div key={stage.key} className="flex md:flex-col items-center md:text-center relative z-10 w-full md:w-auto gap-4 md:gap-2 group">
-              {/* Step indicator circle */}
               <div 
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500 ${
+                className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-300 ${
                   isCompleted 
-                    ? 'bg-gradient-to-br from-primary to-purple-600 border-primary shadow-lg shadow-primary/20 text-white' 
+                    ? 'bg-primary border-primary text-white shadow-sm' 
                     : isActive 
-                    ? 'bg-surface border-secondary-light text-secondary-light shadow-lg shadow-secondary/20 animate-pulse scale-105' 
-                    : 'bg-[#0B0F19] border-white/10 text-gray-500'
+                    ? 'bg-primary/10 border-primary text-primary shadow-sm' 
+                    : 'bg-gray-100 border-gray-200 text-gray-400'
                 }`}
               >
                 {isCompleted ? (
@@ -111,16 +108,15 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
                 )}
               </div>
 
-              {/* Text metadata */}
               <div className="text-left md:text-center space-y-0.5">
                 <p 
                   className={`text-sm font-bold transition-colors ${
-                    isCompleted || isActive ? 'text-white' : 'text-gray-500'
+                    isCompleted || isActive ? 'text-gray-900' : 'text-gray-500'
                   }`}
                 >
                   {stage.label}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 max-w-[150px] leading-snug md:mx-auto">
+                <p className="text-[10px] sm:text-xs text-gray-500 max-w-[150px] leading-snug md:mx-auto">
                   {idx === 3 && isActive && trackingInfo?.carrier
                     ? `Pending dispatch via ${trackingInfo.carrier}`
                     : stage.desc}
@@ -131,24 +127,23 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
         })}
       </div>
 
-      {/* Courier tracking details info block */}
       {status === 'SHIPPED' && trackingInfo?.tracking_number && (
-        <div className="p-5 bg-white/2 border border-white/5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fadeIn">
+        <div className="p-5 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-secondary">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
               Shipment Dispatch Tracking Info
             </span>
-            <p className="text-sm font-bold text-white">
-              Carrier Partner: <span className="text-gray-300 font-medium">{trackingInfo.carrier || 'Standard Courier'}</span>
+            <p className="text-sm font-bold text-gray-900">
+              Carrier Partner: <span className="text-gray-600 font-medium">{trackingInfo.carrier || 'Standard Courier'}</span>
             </p>
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-400">Tracking Number:</span>
-              <code className="text-xs font-mono font-bold text-secondary-light select-all">
+              <span className="text-xs text-gray-500">Tracking Number:</span>
+              <code className="text-xs font-mono font-bold text-primary select-all">
                 {trackingInfo.tracking_number}
               </code>
               <button 
                 onClick={() => copyToClipboard(trackingInfo.tracking_number || '')}
-                className="p-1 hover:bg-white/5 rounded text-gray-400 hover:text-white transition-colors"
+                className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-700 transition-colors"
                 title="Copy tracking number"
               >
                 {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
@@ -166,7 +161,7 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
               href={trackLink} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="px-4 py-2 bg-secondary text-background hover:brightness-110 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-secondary/15 flex items-center space-x-1.5"
+              className="px-4 py-2 bg-primary text-white hover:bg-primary-dark font-semibold text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm flex items-center space-x-1.5"
             >
               <span>Track Shipment</span>
               <Truck className="h-3.5 w-3.5" />

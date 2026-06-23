@@ -109,8 +109,8 @@ export const Cart: React.FC = () => {
         <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
           <ShoppingBag className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Your Cart is Empty</h2>
-        <p className="text-gray-400 mb-8 text-sm">Add some epic anime figures, hoodies, keychains or decorative display props to your collection!</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Cart is Empty</h2>
+        <p className="text-gray-500 mb-8 text-sm">Add some epic anime figures, hoodies, keychains or decorative display props to your collection!</p>
         <Link to="/shop">
           <Button fullWidth>Browse Merch</Button>
         </Link>
@@ -120,13 +120,13 @@ export const Cart: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-extrabold text-white mb-8">Shopping Cart</h1>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Shopping Cart</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Cart Items List */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-white/5">
-            <span className="text-sm font-semibold text-gray-400">{getTotalItems()} Items</span>
+          <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span className="text-sm font-semibold text-gray-500">{getTotalItems()} Items</span>
             <button
               onClick={clearCart}
               className="text-xs text-danger hover:underline font-semibold"
@@ -139,10 +139,10 @@ export const Cart: React.FC = () => {
             {items.map(({ product, quantity, selectedVariant }) => (
               <div
                 key={`${product.id}-${selectedVariant || ''}`}
-                className="glass-card p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
+                className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
               >
                 {/* Product Image */}
-                <div className="w-20 h-24 bg-surface rounded-lg overflow-hidden flex-shrink-0">
+                <div className="w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                   <img
                     src={product.main_image_url}
                     alt={product.name}
@@ -152,13 +152,13 @@ export const Cart: React.FC = () => {
 
                 {/* Info */}
                 <div className="flex-grow text-center sm:text-left space-y-1">
-                  <h3 className="font-bold text-white hover:text-primary-light transition-colors line-clamp-1">
+                  <h3 className="font-bold text-gray-900 hover:text-primary transition-colors line-clamp-1">
                     <Link to={`/product/${product.slug}`}>{product.name}</Link>
                   </h3>
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
                     <span className="text-gray-500">Price: ₹{product.price}</span>
                     {selectedVariant && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light font-bold text-[10px]">
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10px]">
                         Size: {selectedVariant}
                       </span>
                     )}
@@ -166,17 +166,17 @@ export const Cart: React.FC = () => {
                 </div>
 
                 {/* Quantity Controls */}
-                <div className="flex items-center border border-white/10 rounded-lg bg-[#0B0F19]">
+                <div className="flex items-center border border-gray-300 rounded-lg bg-white">
                   <button
                     onClick={() => updateQuantity(product.id, quantity - 1, selectedVariant)}
-                    className="px-2.5 py-1 text-gray-400 hover:text-white"
+                    className="px-2.5 py-1 text-gray-400 hover:text-gray-900"
                   >
                     -
                   </button>
-                  <span className="px-3 text-xs font-bold text-white">{quantity}</span>
+                  <span className="px-3 text-xs font-bold text-gray-900">{quantity}</span>
                   <button
                     onClick={() => updateQuantity(product.id, quantity + 1, selectedVariant)}
-                    className="px-2.5 py-1 text-gray-400 hover:text-white"
+                    className="px-2.5 py-1 text-gray-400 hover:text-gray-900"
                   >
                     +
                   </button>
@@ -184,7 +184,7 @@ export const Cart: React.FC = () => {
 
                 {/* Subtotal & Delete */}
                 <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-4 w-full sm:w-auto">
-                  <span className="font-extrabold text-sm text-white">₹{product.price * quantity}</span>
+                  <span className="font-extrabold text-sm text-gray-900">₹{product.price * quantity}</span>
                   <button
                     onClick={() => removeItem(product.id, selectedVariant)}
                     className="text-gray-500 hover:text-danger transition-colors p-1"
@@ -199,13 +199,13 @@ export const Cart: React.FC = () => {
 
         {/* Order Summary sidebar */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="glass-card p-6 rounded-2xl border border-white/5 space-y-6">
-            <h2 className="text-lg font-bold text-white">Order Summary</h2>
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+            <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
 
-            <div className="space-y-3 text-sm text-gray-400">
+            <div className="space-y-3 text-sm text-gray-600">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span className="text-white font-semibold">₹{subtotal}</span>
+                <span className="text-gray-900 font-semibold">₹{subtotal}</span>
               </div>
               
               {discountAmount > 0 && (
@@ -220,25 +220,25 @@ export const Cart: React.FC = () => {
                 {shippingCharge === 0 ? (
                   <span className="text-success font-bold">FREE</span>
                 ) : (
-                  <span className="text-white font-semibold">₹{shippingCharge}</span>
+                  <span className="text-gray-900 font-semibold">₹{shippingCharge}</span>
                 )}
               </div>
 
               {shippingCharge > 0 && (
-                <div className="text-[10px] text-primary-light italic leading-tight">
+                <div className="text-[10px] text-primary italic leading-tight">
                   Add ₹{999 - subtotal} more to unlock FREE shipping!
                 </div>
               )}
             </div>
 
             {/* Coupon input */}
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Apply Promo Coupon</label>
+            <div className="space-y-2 pt-2 border-t border-gray-200">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Apply Promo Coupon</label>
               {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-sm text-emerald-400 font-medium">
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-600 font-medium">
                   <div className="flex flex-col">
                     <span className="font-extrabold">{appliedCoupon.code} Applied!</span>
-                    <span className="text-[10px] text-emerald-500/80">
+                    <span className="text-[10px] text-emerald-600/80">
                       {appliedCoupon.type === 'PERCENT' ? `${appliedCoupon.value}% off` : `₹${appliedCoupon.value} off`}
                     </span>
                   </div>
@@ -253,11 +253,11 @@ export const Cart: React.FC = () => {
                     placeholder="ANIME20, NEO10..."
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    className="flex-grow bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-primary/50 text-white placeholder-gray-500 uppercase"
+                    className="flex-grow bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-primary text-gray-900 placeholder-gray-500 uppercase"
                   />
                   <button
                     onClick={handleApplyCoupon}
-                    className="px-4 bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold rounded-xl text-white transition-all"
+                    className="px-4 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-xs font-semibold rounded-xl text-gray-900 transition-all"
                   >
                     Apply
                   </button>
@@ -266,9 +266,9 @@ export const Cart: React.FC = () => {
               {couponError && <p className="text-[10px] text-danger font-semibold">{couponError}</p>}
             </div>
 
-            <div className="border-t border-white/5 pt-4 flex justify-between text-base font-extrabold text-white">
+            <div className="border-t border-gray-200 pt-4 flex justify-between text-base font-extrabold text-gray-900">
               <span>Total Amount:</span>
-              <span className="text-secondary-light">₹{total}</span>
+              <span className="text-secondary">₹{total}</span>
             </div>
 
             <Button fullWidth size="lg" onClick={handleCheckoutClick}>
@@ -278,7 +278,7 @@ export const Cart: React.FC = () => {
           </div>
 
           {/* Safety badge */}
-          <div className="flex items-center space-x-3 p-4 bg-white/2 rounded-xl border border-white/5">
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <ShieldCheck className="h-5 w-5 text-success flex-shrink-0" />
             <p className="text-[10px] text-gray-500 leading-normal">
               Safe & secure ordering. Manual UPI screenshot review ensures error-free processing before bank settlements.
