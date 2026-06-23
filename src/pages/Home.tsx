@@ -91,9 +91,9 @@ export const Home: React.FC = () => {
             />
           </motion.div>
           {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/95 via-gray-100/90 to-gray-50/95" />
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/85 via-gray-100/80 to-gray-50/85" />
           {/* Gradient Masking at edges */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-gray-50/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-gray-50/30" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
