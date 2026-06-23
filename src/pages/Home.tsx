@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, ShoppingBag, TrendingUp, Gift, ArrowRight, ShieldCheck, Check, Send, Star, Zap } from 'lucide-react';
+import { Sparkles, ShoppingBag, ArrowRight, ShieldCheck, Check, Send, Gift, Truck, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types/database';
 import { sanitizeSlug } from '../lib/persistence';
@@ -11,6 +11,7 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
@@ -23,18 +24,17 @@ export const Home: React.FC = () => {
         ]);
       };
 
+      setLoading(true);
       try {
-        // Always try Supabase first with cache-busting
         const { data: dbCategories, error: catError } = await withTimeout(
-          supabase.from('categories').select('*').limit(6),
+          supabase.from('categories').select('*').order('name'),
           5000
         );
         if (catError) throw catError;
         setCategories(dbCategories || []);
 
-        // Fetch featured products with cache-busting
         const { data: dbProducts, error: prodError } = await withTimeout(
-          supabase.from('products').select('*').eq('featured', true).limit(4),
+          supabase.from('products').select('*').eq('featured', true).order('name'),
           5000
         );
         if (prodError) throw prodError;
@@ -49,6 +49,8 @@ export const Home: React.FC = () => {
         console.error('Error fetching homepage data:', err);
         setCategories([]);
         setFeaturedProducts([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -62,382 +64,265 @@ export const Home: React.FC = () => {
       const { error } = await supabase
         .from('newsletter_subscribers')
         .insert({ email: newsletterEmail.trim() });
-      
+
       if (error) throw error;
-      
-      // If error is code 23505 (unique violation), it means already subscribed.
-      // We will handle either as success to the user
       setNewsletterSubscribed(true);
       setNewsletterEmail('');
     } catch (err) {
       console.error('Error subscribing to newsletter:', err);
-      // Fallback local success
       setNewsletterSubscribed(true);
     }
   };
 
+  const trustPoints = [
+    { icon: ShieldCheck, label: 'Secure UPI checkout with manual verification' },
+    { icon: Truck, label: 'Tracked shipping across India' },
+    { icon: Package, label: 'Carefully packed collectibles & apparel' },
+  ];
+
   return (
-    <div className="space-y-24 pb-16">
-      {/* 1. Hero Banner */}
-      <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full grid lg:grid-cols-2 gap-8 items-center py-16 lg:py-0">
-          {/* LEFT: Text Content */}
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.9, ease: 'easeOut' }}
-            className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-7"
-          >
-            {/* Live badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10"
-            >
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping absolute" />
-              <span className="w-2 h-2 rounded-full bg-primary relative" />
-              <Zap className="h-3.5 w-3.5 text-primary" />
-              <span className="text-primary text-xs font-bold uppercase tracking-widest">India's #1 Anime Store</span>
-            </motion.div>
-
-            {/* Main heading */}
-            <div className="space-y-2">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.7 }}
-                className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.05]"
-              >
-                Your Anime{' '}
-                <span className="relative inline-block">
-                  <span className="text-primary">
-                    Universe
-                  </span>
-                </span>
-                <br />
-                <span className="text-gray-900">Awaits</span>
-              </motion.h1>
-            </div>
-
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
-              className="text-gray-600 text-base sm:text-lg max-w-md leading-relaxed"
-            >
-              Premium action figures, katanas, apparel, keychains & collector accessories — all from your favourite anime.
-            </motion.p>
-
-            {/* CTA Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.68 }}
-              className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
-            >
-              <button
-                onClick={() => navigate('/shop')}
-                className="group flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-bold text-base text-white bg-primary hover:bg-primary-dark shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
-              >
-                <ShoppingBag className="h-5 w-5" />
-                <span>Shop Now</span>
-                <ArrowRight className="h-4 w-4 relative z-10 -translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all duration-200" />
-              </button>
-              <button
-                onClick={() => navigate('/shop')}
-                className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-bold text-base text-gray-700 border border-gray-300 bg-white hover:bg-gray-50 hover:border-primary transition-all duration-300 hover:scale-[1.02]"
-              >
-                <Sparkles className="h-5 w-5 text-primary" />
-                Browse Categories
-              </button>
-            </motion.div>
-
-            {/* Social proof stats */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.85 }}
-              className="flex items-center gap-6 pt-2"
-            >
-              <div className="text-center">
-                <p className="text-gray-900 font-extrabold text-xl">500+</p>
-                <p className="text-gray-500 text-xs">Products</p>
-              </div>
-              <div className="w-px h-8 bg-gray-200" />
-              <div className="text-center">
-                <p className="text-gray-900 font-extrabold text-xl">10K+</p>
-                <p className="text-gray-500 text-xs">Happy Fans</p>
-              </div>
-              <div className="w-px h-8 bg-gray-200" />
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-                <span className="text-gray-500 text-xs ml-1">4.9/5</span>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* RIGHT: Anime Characters PNG */}
-          <motion.div
-            initial={{ opacity: 0, x: 60, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
-            className="hidden lg:flex items-end justify-center relative"
-            style={{ minHeight: '580px' }}
-          >
-            {/* Character image */}
-            <img
-              src="/hero_bg.png"
-              alt="Anime Characters"
-              className="relative z-10 w-full max-w-lg object-bottom"
-              style={{
-                objectFit: 'contain',
-                height: '540px',
-              }}
-            />
-            {/* Floating tag badges */}
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute top-16 right-0 bg-white rounded-2xl px-4 py-3 border border-gray-200 shadow-lg z-20"
-            >
-              <p className="text-xs text-gray-500 font-medium">Latest Drop</p>
-              <p className="text-gray-900 text-sm font-bold">Bleach Action Figure</p>
-            </motion.div>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              className="absolute bottom-24 left-0 bg-white rounded-2xl px-4 py-3 border border-gray-200 shadow-lg z-20"
-            >
-              <p className="text-xs text-gray-500 font-medium">Free Shipping</p>
-              <p className="text-gray-900 text-sm font-bold">Orders ₹899+</p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 2. Popular Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-10">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Popular Categories</h2>
-            <p className="text-gray-600 text-sm mt-1">Browse our handpicked anime collections</p>
-          </div>
-          <Link to="/shop" className="text-primary hover:text-primary-dark text-sm font-semibold flex items-center space-x-1.5 transition-colors">
-            <span>View All</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {categories.map((cat, idx) => (
-            <motion.div
-              key={cat.id || idx}
-              whileHover={{ y: -6 }}
-              onClick={() => navigate(`/shop?category=${encodeURIComponent(cat.name)}`)}
-              className="bg-white rounded-2xl overflow-hidden border border-gray-200 cursor-pointer flex flex-col group shadow-sm hover:shadow-md transition-all"
-            >
-              <div className="aspect-square w-full relative overflow-hidden bg-gray-50">
-                <img
-                  src={cat.image_url}
-                  alt={cat.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                />
-              </div>
-              <div className="p-4 text-center mt-auto">
-                <h3 className="font-bold text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{cat.name}</h3>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. Featured Products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-10">
-          <div>
-            <span className="flex items-center space-x-2 text-secondary text-xs font-semibold uppercase tracking-wider mb-1">
-              <TrendingUp className="h-4 w-4" />
-              <span>Trending Items</span>
-            </span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Featured Collectibles</h2>
-          </div>
-          <Link to="/shop?featured=true" className="text-secondary hover:text-secondary-dark text-sm font-semibold flex items-center space-x-1.5 transition-colors">
-            <span>Shop Hot Items</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-          {featuredProducts.map((product, idx) => (
-            <motion.div
-              key={product.id || idx}
-              whileHover={{ y: -4 }}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col relative group cursor-pointer shadow-sm hover:shadow-md transition-all"
-              onClick={() => navigate(`/product/${product.slug}`)}
-            >
-              {/* Badge */}
-              <span className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 px-1.5 sm:px-2.5 py-0.5 sm:py-1 bg-primary text-white font-extrabold text-[9px] sm:text-[10px] uppercase rounded-md tracking-wider">
-                Featured
-              </span>
-
-              {/* Product Image */}
-              <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden">
-                <img
-                  src={product.main_image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Details */}
-              <div className="p-2.5 sm:p-5 flex flex-col flex-grow">
-                <h3 className="font-bold text-xs sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-1">
-                  {product.name}
-                </h3>
-                <p className="text-gray-500 text-[10px] sm:text-xs mt-0.5 sm:mt-1 line-clamp-2 leading-relaxed flex-grow hidden sm:block">
-                  {product.description}
+    <div className="pb-20">
+      {/* Hero */}
+      <section className="bg-gray-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="text-center lg:text-left space-y-8">
+              <div className="space-y-4">
+                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                  Premium Anime Merchandise
                 </p>
-                <div className="flex items-center justify-between mt-2 sm:mt-5 pt-2 sm:pt-3 border-t border-gray-100">
-                  <span className="font-bold text-sm sm:text-lg text-gray-900">₹{product.price}</span>
-                  <span className="text-[9px] sm:text-xs font-medium text-success bg-success/10 border border-success/20 px-1.5 sm:px-2 py-0.5 rounded">
-                    In Stock
-                  </span>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 leading-tight">
+                  Collect, wear, and display your favourite anime worlds
+                </h1>
+                <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                  Action figures, apparel, display props, and accessories — curated for fans who care about quality.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <button
+                  onClick={() => navigate('/shop')}
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-white bg-primary hover:bg-primary-dark shadow-sm transition-colors"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Shop All Products
+                </button>
+                <button
+                  onClick={() => navigate('/shop')}
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-gray-700 border border-gray-300 bg-white hover:border-primary hover:text-primary transition-colors"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Browse Categories
+                </button>
+              </div>
+
+              <ul className="space-y-3 pt-2 border-t border-gray-200">
+                {trustPoints.map(({ icon: Icon, label }) => (
+                  <li key={label} className="flex items-center gap-3 text-sm text-gray-600 justify-center lg:justify-start">
+                    <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="hidden lg:flex items-center justify-center">
+              <img
+                src="/hero_bg.png"
+                alt="Anime merchandise collection"
+                className="w-full max-w-md object-contain"
+                loading="eager"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Categories */}
+      {categories.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-1">Shop by category</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Popular Categories</h2>
+            </div>
+            <Link
+              to="/shop"
+              className="text-primary hover:text-primary-dark text-sm font-semibold inline-flex items-center gap-1.5 transition-colors"
+            >
+              View all
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => navigate(`/shop?category=${encodeURIComponent(cat.name)}`)}
+                className="bg-white rounded-xl overflow-hidden border border-gray-200 text-left group shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+              >
+                <div className="aspect-square w-full overflow-hidden bg-gray-100">
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
                 </div>
+                <div className="p-3 sm:p-4">
+                  <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">{cat.name}</h3>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Featured Products */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-1">Handpicked for you</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Featured Products</h2>
+          </div>
+          <Link
+            to="/shop?featured=true"
+            className="text-primary hover:text-primary-dark text-sm font-semibold inline-flex items-center gap-1.5 transition-colors"
+          >
+            View all featured
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-primary" />
+          </div>
+        ) : featuredProducts.length === 0 ? (
+          <div className="text-center py-16 px-6 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-gray-600 text-sm mb-4">No featured products at the moment.</p>
+            <Button size="sm" onClick={() => navigate('/shop')}>Browse the full shop</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
+            {featuredProducts.map((product) => (
+              <article
+                key={product.id}
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col group cursor-pointer shadow-sm hover:shadow-md hover:border-primary/30 transition-all"
+                onClick={() => navigate(`/product/${product.slug}`)}
+              >
+                <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
+                  <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-primary text-white text-[10px] font-bold uppercase rounded tracking-wide">
+                    Featured
+                  </span>
+                  <img
+                    src={product.main_image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="p-3 sm:p-4 flex flex-col flex-grow">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 group-hover:text-primary transition-colors line-clamp-2">
+                    {product.name}
+                  </h3>
+                  {product.description && (
+                    <p className="text-gray-500 text-xs mt-1 line-clamp-2 leading-relaxed hidden sm:block">
+                      {product.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+                    <span className="font-bold text-sm sm:text-base text-gray-900">₹{product.price}</span>
+                    {product.stock > 0 ? (
+                      <span className="text-[10px] sm:text-xs font-medium text-success">In stock</span>
+                    ) : (
+                      <span className="text-[10px] sm:text-xs font-medium text-gray-400">Out of stock</span>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Trust */}
+      <section className="bg-gray-50 border-y border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg flex-shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
-            </motion.div>
-          ))}
+              <div>
+                <h3 className="font-semibold text-gray-900">Secure UPI payments</h3>
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                  Pay via UPI and upload your transaction screenshot. Orders are verified before processing.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg flex-shrink-0">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Quality-checked items</h3>
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                  Figures, apparel, and display props are inspected before dispatch.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg flex-shrink-0">
+                <Check className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Buyer reviews on product pages</h3>
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                  Read ratings and feedback from verified purchasers on each product detail page.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 4. Trust Banner */}
-      <section className="bg-gray-50 border-y border-gray-200 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-start space-x-4">
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                <ShieldCheck className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-base">Manual UPI Safety</h4>
-                <p className="text-xs text-gray-600 mt-1">Verify payment via QR screenshot. Zero payment gateway failures or hidden fees.</p>
-              </div>
+      {/* Newsletter */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+        <div className="bg-white p-8 sm:p-10 rounded-2xl border border-gray-200 shadow-sm text-center">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Stay updated</h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Get notified about new arrivals, restocks, and store announcements.
+              </p>
             </div>
-
-            <div className="flex items-start space-x-4">
-              <div className="p-3 bg-secondary/10 border border-secondary/20 rounded-xl">
-                <Gift className="h-6 w-6 text-secondary" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-base">Cosplay Display Props</h4>
-                <p className="text-xs text-gray-600 mt-1">Safety-blunt collection swords, accessories, and sturdy figures optimized for otakus.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4">
-              <div className="p-3 bg-success/10 border border-success/20 rounded-xl">
-                <Check className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-base">Verified Product Reviews</h4>
-                <p className="text-xs text-gray-600 mt-1">Real ratings, comments, and image uploads from certified buyers only.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Customer Testimonials */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-extrabold text-gray-900">What Anime Fans Say</h2>
-          <p className="text-gray-600 text-sm mt-1">Trusted by thousands of collectors and cosplayers</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-primary/10 border border-primary/30 rounded-full flex items-center justify-center text-primary font-bold text-sm">
-                R
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Rohan Sharma</h4>
-                <p className="text-xs text-gray-500">Verified Buyer</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 leading-relaxed italic">
-              "The Zoro Shusui katana is absolutely gorgeous! It's solid, has a great weight, and looks epic on my wall setup. The UPI verification was super quick."
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-secondary/10 border border-secondary/30 rounded-full flex items-center justify-center text-secondary font-bold text-sm">
-                P
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Priya Patel</h4>
-                <p className="text-xs text-gray-500">Verified Buyer</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 leading-relaxed italic">
-              "Honestly, the hoodie embroidery is high quality! It survived five washes already, and the red cloud still looks brand new. Highly recommend AnimeMaze."
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-success/10 border border-success/30 rounded-full flex items-center justify-center text-success font-bold text-sm">
-                A
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm">Arjun Varma</h4>
-                <p className="text-xs text-gray-500">Verified Buyer</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 leading-relaxed italic">
-              "Awesome figure detailing! Packed with double layers of bubble wrap so it arrived without a single scratch. Five stars for the service."
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Newsletter Signup */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white p-8 sm:p-12 rounded-3xl border border-gray-200 text-center relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl" />
-          
-          <div className="max-w-xl mx-auto space-y-6 relative z-10">
-            <h2 className="text-3xl font-extrabold text-gray-900">Join the AnimeMaze Club</h2>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Subscribe to get notified about new figure drops, exclusive cosplay props, flash sales, and special otaku discount coupons!
-            </p>
 
             {newsletterSubscribed ? (
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center space-x-2 text-success bg-success/10 border border-success/20 px-6 py-3 rounded-full font-medium"
+                className="inline-flex items-center gap-2 text-success bg-success/10 border border-success/20 px-5 py-2.5 rounded-lg text-sm font-medium"
               >
-                <Check className="h-5 w-5" />
-                <span>You are now subscribed to drops list!</span>
+                <Check className="h-4 w-4" />
+                <span>You're subscribed. We'll be in touch.</span>
               </motion.div>
             ) : (
-              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row items-center gap-3">
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                 <input
                   type="email"
                   required
-                  placeholder="Enter your email address"
+                  placeholder="you@example.com"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="w-full px-5 py-3.5 rounded-xl text-sm bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-4 py-3 rounded-lg text-sm bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
-                <Button type="submit" size="lg" className="w-full sm:w-auto flex-shrink-0">
+                <Button type="submit" className="sm:flex-shrink-0">
                   <Send className="mr-2 h-4 w-4" />
                   Subscribe
                 </Button>
