@@ -21,6 +21,7 @@ export const Home: React.FC = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const [bgImageLoaded, setBgImageLoaded] = useState(false);
 
   useEffect(() => {
     void initializeCatalog();
@@ -66,8 +67,36 @@ export const Home: React.FC = () => {
   return (
     <div className="pb-20">
       {/* Hero */}
-      <section className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <section className="relative bg-gray-50 border-b border-gray-200 overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <motion.div
+            animate={{
+              y: [0, -20, 0],
+              scale: [1, 1.02, 1],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="w-full h-full"
+          >
+            <img
+              src="/hero_bg.png"
+              alt=""
+              className={`w-full h-full object-cover transition-opacity duration-700 ${bgImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              loading="eager"
+              onLoad={() => setBgImageLoaded(true)}
+            />
+          </motion.div>
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/95 via-gray-100/90 to-gray-50/95" />
+          {/* Gradient Masking at edges */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-gray-50/50" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="text-center lg:text-left space-y-8">
               <div className="space-y-4">
