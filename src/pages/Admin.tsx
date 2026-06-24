@@ -7,7 +7,7 @@ import type { Product, Category, Order, ProductQuestion, Review, NewsletterSubsc
 import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar, Copy, MapPin } from 'lucide-react';
 
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -74,6 +74,28 @@ export const Admin: React.FC = () => {
 
   // Announcement State
   const [announcementText, setAnnouncementText] = useState('🎉 Special Launch Offer: Use code ANIME20 for 20% discount! 🚚 FREE Shipping on orders above ₹999!');
+
+  // Copy Address Function
+  const handleCopyAddress = (order: Order) => {
+    const addr = order.shipping_address;
+    const addressText = [
+      addr.fullName,
+      addr.phone,
+      addr.email,
+      addr.address,
+      addr.landmark,
+      addr.city,
+      addr.state,
+      addr.pincode,
+      addr.country
+    ].filter(Boolean).join(', ');
+    
+    navigator.clipboard.writeText(addressText).then(() => {
+      alert('Address copied to clipboard!');
+    }).catch(() => {
+      alert('Failed to copy address');
+    });
+  };
 
   // Verification checks for admin role
   useEffect(() => {
@@ -807,12 +829,23 @@ export const Admin: React.FC = () => {
                         .map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-bold text-xs truncate max-w-[120px]">{order.id}</td>
-                            <td className="px-6 py-4">
-                              <p className="font-bold text-gray-900">{order.shipping_address?.fullName}</p>
-                              <p className="text-xs text-gray-500">{order.shipping_address?.phone}</p>
-                              {order.shipping_address?.transactionId && (
-                                <p className="text-xs text-amber-600 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
-                              )}
+                            <td className="px-6 py-4 max-w-[200px]">
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-gray-900">{order.shipping_address?.fullName}</p>
+                                <p className="text-xs text-gray-500">{order.shipping_address?.phone}</p>
+                                <p className="text-[10px] text-gray-400">{order.shipping_address?.email}</p>
+                                <p className="text-xs text-gray-600 truncate">{order.shipping_address?.address}</p>
+                                {order.shipping_address?.landmark && (
+                                  <p className="text-[10px] text-gray-400 italic">Landmark: {order.shipping_address.landmark}</p>
+                                )}
+                                <p className="text-xs text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
+                                {order.shipping_address?.country && (
+                                  <p className="text-[10px] text-gray-400">{order.shipping_address.country}</p>
+                                )}
+                                {order.shipping_address?.transactionId && (
+                                  <p className="text-xs text-amber-600 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 font-extrabold text-gray-900">₹{order.total_amount}</td>
                             <td className="px-6 py-4 text-center">
@@ -1031,13 +1064,35 @@ export const Admin: React.FC = () => {
                     {orders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 font-bold text-xs truncate max-w-[120px]">{order.id}</td>
-                        <td className="px-6 py-4 text-xs">
-                          <p className="font-bold text-gray-900">{order.shipping_address?.fullName}</p>
-                          <p className="text-gray-500">{order.shipping_address?.phone}</p>
-                          <p className="text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state}</p>
-                          {order.shipping_address?.transactionId && (
-                            <p className="text-[10px] text-amber-400 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
-                          )}
+                        <td className="px-6 py-4 text-xs max-w-[280px]">
+                          <div className="space-y-1">
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-gray-900">{order.shipping_address?.fullName}</p>
+                                <p className="text-gray-600">{order.shipping_address?.phone}</p>
+                                <p className="text-gray-500 text-[10px]">{order.shipping_address?.email}</p>
+                                <p className="text-gray-600">{order.shipping_address?.address}</p>
+                                {order.shipping_address?.landmark && (
+                                  <p className="text-gray-500 text-[10px] italic">Landmark: {order.shipping_address.landmark}</p>
+                                )}
+                                <p className="text-gray-600">{order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
+                                {order.shipping_address?.country && (
+                                  <p className="text-gray-500 text-[10px]">{order.shipping_address.country}</p>
+                                )}
+                                {order.shipping_address?.transactionId && (
+                                  <p className="text-[10px] text-amber-400 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleCopyAddress(order)}
+                              className="flex items-center gap-1 text-[10px] text-primary hover:text-secondary font-semibold mt-1"
+                            >
+                              <Copy className="h-3 w-3" />
+                              Copy Address
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-xs space-y-2">
                           {order.items?.map((item, idx) => (

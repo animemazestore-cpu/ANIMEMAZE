@@ -40,9 +40,11 @@ export const Checkout: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState(user?.email || '');
   const [address, setAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+  const [country, setCountry] = useState('India');
 
   // Payment Proof
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
@@ -96,9 +98,11 @@ export const Checkout: React.FC = () => {
       phone,
       email,
       address,
+      landmark,
       city,
       state,
       pincode,
+      country,
       transactionId: transactionId.trim(),
       item_variants: items.map(item => ({
         product_id: item.product.id,
@@ -323,6 +327,14 @@ export const Checkout: React.FC = () => {
             </div>
 
             <Input
+              label="Landmark (Optional)"
+              type="text"
+              placeholder="Near metro station, school, etc."
+              value={landmark}
+              onChange={(e) => setLandmark(e.target.value)}
+            />
+
+            <Input
               label="City"
               type="text"
               required
@@ -347,6 +359,15 @@ export const Checkout: React.FC = () => {
               placeholder="110001"
               value={pincode}
               onChange={(e) => setPincode(e.target.value)}
+            />
+
+            <Input
+              label="Country"
+              type="text"
+              required
+              placeholder="India"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
             />
           </div>
         </div>

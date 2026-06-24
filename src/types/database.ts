@@ -41,6 +41,8 @@ export interface ShippingAddress {
   city: string;
   state: string;
   pincode: string;
+  country?: string;
+  landmark?: string;
   transactionId?: string;
 }
 
