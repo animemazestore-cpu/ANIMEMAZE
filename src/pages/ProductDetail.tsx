@@ -241,7 +241,9 @@ export const ProductDetail: React.FC = () => {
 
         if (uploadError) {
           console.error('Image upload failed:', uploadError);
-          throw new Error('Failed to upload review images. Please try again.');
+          // Continue without this image, but warn user
+          alert(`Warning: Failed to upload image "${file.name}". Your review will be submitted without this image. Error: ${uploadError.message}`);
+          continue;
         }
 
         const { data: { publicUrl } } = supabase.storage
