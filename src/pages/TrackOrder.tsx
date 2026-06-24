@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Calendar, Clock, ShieldAlert, ShoppingBag } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, ShieldAlert, ShoppingBag, Truck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Order } from '../types/database';
 import { TrackingStepper } from '../components/order/TrackingStepper';
@@ -140,6 +140,14 @@ export const TrackOrder: React.FC = () => {
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <span>Shipping: {order.shipping_address?.city}, {order.shipping_address?.state}</span>
                 </span>
+                {order.estimated_delivery_date && (
+                  <span className="flex items-center gap-1.5">
+                    <Truck className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-primary">
+                      Est. Delivery: {new Date(order.estimated_delivery_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
 

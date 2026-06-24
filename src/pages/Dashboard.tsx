@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import type { Order } from '../types/database';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { User, ShoppingBag, Heart, Settings, CreditCard, ChevronDown, ChevronUp, RefreshCcw, X } from 'lucide-react';
+import { User, ShoppingBag, Heart, Settings, CreditCard, ChevronDown, ChevronUp, RefreshCcw, X, Truck } from 'lucide-react';
 import { TrackingStepper } from '../components/order/TrackingStepper';
 
 
@@ -347,6 +347,12 @@ export const Dashboard: React.FC = () => {
                           <div className="space-y-1">
                             <p className="text-xs text-gray-500">Order ID: <span className="font-bold text-gray-900">{order.id}</span></p>
                             <p className="text-xs text-gray-400">Placed on: {order.created_at && !isNaN(Date.parse(order.created_at)) ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</p>
+                            {order.estimated_delivery_date && (
+                              <p className="text-xs text-primary font-semibold flex items-center gap-1">
+                                <Truck className="h-3 w-3" />
+                                Est. Delivery: {new Date(order.estimated_delivery_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </p>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3">

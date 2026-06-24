@@ -51,6 +51,7 @@ export const Checkout: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [orderCreatedId, setOrderCreatedId] = useState<string | null>(null);
+  const [orderDeliveryDate, setOrderDeliveryDate] = useState<string | null>(null);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -105,6 +106,10 @@ export const Checkout: React.FC = () => {
       }))
     };
 
+    // Calculate estimated delivery date (5-6 days from now)
+    const estimatedDeliveryDate = new Date();
+    estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 5 + Math.floor(Math.random() * 2)); // 5-6 days
+
     try {
       // --- Try Supabase first ---
       const { data: orderData, error: orderError } = await supabase
@@ -114,7 +119,8 @@ export const Checkout: React.FC = () => {
           total_amount: total,
           status: 'PENDING_VERIFICATION',
           payment_status: 'PENDING_VERIFICATION',
-          shipping_address: shippingAddressJson
+          shipping_address: shippingAddressJson,
+          estimated_delivery_date: estimatedDeliveryDate.toISOString()
         })
         .select()
         .single();
@@ -171,6 +177,7 @@ export const Checkout: React.FC = () => {
       setTimeout(() => {
         setLoading(false);
         setOrderCreatedId(orderId);
+        setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
       }, 2500);
 
     } catch (supabaseErr: any) {
@@ -186,6 +193,7 @@ export const Checkout: React.FC = () => {
           status: 'PENDING_VERIFICATION',
           payment_status: 'PENDING_VERIFICATION',
           shipping_address: shippingAddressJson,
+          estimated_delivery_date: estimatedDeliveryDate.toISOString(),
           items: items.map((item, idx) => ({
             id: `item-${Date.now()}-${idx}`,
             product_id: item.product.id,
@@ -208,6 +216,7 @@ export const Checkout: React.FC = () => {
         setTimeout(() => {
           setLoading(false);
           setOrderCreatedId(localOrderId);
+          setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
         }, 2500);
       } catch (localErr) {
         console.error('Local order storage also failed:', localErr);
@@ -226,6 +235,10 @@ export const Checkout: React.FC = () => {
   )}`;
 
   if (orderCreatedId) {
+    const formattedDeliveryDate = orderDeliveryDate 
+      ? new Date(orderDeliveryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null;
+
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
         <div className="w-16 h-16 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto text-success">
@@ -235,6 +248,12 @@ export const Checkout: React.FC = () => {
         <p className="text-gray-500 text-sm leading-relaxed">
           Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. We have received your UPI screenshot and are currently verifying the payment. You can track this in your dashboard.
         </p>
+        {formattedDeliveryDate && (
+          <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Estimated Delivery</p>
+            <p className="text-lg font-bold text-gray-900">{formattedDeliveryDate}</p>
+          </div>
+        )}
         <div className="pt-4 flex gap-4">
           <Button fullWidth onClick={() => navigate('/dashboard')}>
             Go to Dashboard

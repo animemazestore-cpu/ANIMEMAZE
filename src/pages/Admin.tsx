@@ -7,7 +7,7 @@ import type { Product, Category, Order, ProductQuestion, Review, NewsletterSubsc
 import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar } from 'lucide-react';
 
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -61,6 +61,10 @@ export const Admin: React.FC = () => {
   const [trackingCarrier, setTrackingCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingTargetStatus, setTrackingTargetStatus] = useState('');
+
+  // Delivery Date Edit States
+  const [editingDeliveryDateOrderId, setEditingDeliveryDateOrderId] = useState<string | null>(null);
+  const [editingDeliveryDate, setEditingDeliveryDate] = useState('');
 
   // Coupon Management States
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -616,6 +620,32 @@ export const Admin: React.FC = () => {
     await performOrderStatusUpdate(trackingOrderId, trackingTargetStatus || 'SHIPPED', trackingInfo);
   };
 
+  // --- Actions: Edit Estimated Delivery Date ---
+  const handleEditDeliveryDate = (orderId: string, currentDate: string | null) => {
+    setEditingDeliveryDateOrderId(orderId);
+    setEditingDeliveryDate(currentDate ? new Date(currentDate).toISOString().split('T')[0] : '');
+  };
+
+  const handleSaveDeliveryDate = async () => {
+    if (!editingDeliveryDateOrderId || !editingDeliveryDate) return;
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ estimated_delivery_date: new Date(editingDeliveryDate).toISOString() })
+        .eq('id', editingDeliveryDateOrderId);
+
+      if (error) throw error;
+      alert('Estimated delivery date updated successfully!');
+      setEditingDeliveryDateOrderId(null);
+      setEditingDeliveryDate('');
+      loadAdminData();
+    } catch (err: any) {
+      console.error('Failed to update delivery date:', err);
+      alert('Failed to update delivery date: ' + (err.message || err));
+    }
+  };
+
   // --- Actions: Q&A --- always try DB first
   const handleAnswerQuestion = async (questionId: string, answer: string) => {
     if (!answer.trim()) return;
@@ -992,6 +1022,7 @@ export const Admin: React.FC = () => {
                       <th className="px-6 py-4">Shipping Info</th>
                       <th className="px-6 py-4">Ordered Items</th>
                       <th className="px-6 py-4">Grand Total</th>
+                      <th className="px-6 py-4">Est. Delivery</th>
                       <th className="px-6 py-4">Fulfillment Status</th>
                       <th className="px-6 py-4">Payment Status</th>
                     </tr>
@@ -1033,6 +1064,50 @@ export const Admin: React.FC = () => {
                           ))}
                         </td>
                         <td className="px-6 py-4 font-extrabold text-gray-900">₹{order.total_amount}</td>
+                        <td className="px-6 py-4">
+                          {editingDeliveryDateOrderId === order.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={editingDeliveryDate}
+                                onChange={(e) => setEditingDeliveryDate(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-xs"
+                              />
+                              <button
+                                onClick={handleSaveDeliveryDate}
+                                className="p-1 bg-success/20 text-success rounded hover:bg-success/30"
+                                title="Save"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingDeliveryDateOrderId(null);
+                                  setEditingDeliveryDate('');
+                                }}
+                                className="p-1 bg-danger/20 text-danger rounded hover:bg-danger/30"
+                                title="Cancel"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-gray-900">
+                                {order.estimated_delivery_date
+                                  ? new Date(order.estimated_delivery_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                                  : 'Not set'}
+                              </span>
+                              <button
+                                onClick={() => handleEditDeliveryDate(order.id, order.estimated_delivery_date)}
+                                className="p-1 bg-gray-100 text-primary rounded hover:bg-gray-200"
+                                title="Edit delivery date"
+                              >
+                                <Calendar className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1.5">
                             <select

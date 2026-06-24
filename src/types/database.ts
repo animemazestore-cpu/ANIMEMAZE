@@ -52,6 +52,7 @@ export interface Order {
   payment_status: PaymentStatus;
   shipping_address: ShippingAddress;
   created_at: string;
+  estimated_delivery_date: string | null;
   profile?: Profile;
   items?: OrderItem[];
   payment_proof?: PaymentProof;
