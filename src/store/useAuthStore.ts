@@ -80,39 +80,58 @@ export const useAuthStore = create<AuthState>((set, get) => {
         
         if (error || !profile) {
           const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);
-          set({
-            user,
-            profile: localSaved ? JSON.parse(localSaved) : {
-              id: user.id,
-              email: user.email || '',
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-              avatar_url: user.user_metadata?.avatar_url || '',
-              role: 'user',
-              created_at: new Date().toISOString()
-            },
-            loading: false,
-            initialized: true
-          });
-        } else {
-          set({ user, profile: profile as Profile, loading: false, initialized: true });
-        }
-      } catch (err) {
-        const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);
-        set({
-          user,
-          profile: localSaved ? JSON.parse(localSaved) : {
+          const fallbackProfile = localSaved ? JSON.parse(localSaved) : {
             id: user.id,
             email: user.email || '',
             full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
             avatar_url: user.user_metadata?.avatar_url || '',
             role: 'user',
             created_at: new Date().toISOString()
-          },
+          };
+          
+          set({
+            user,
+            profile: fallbackProfile,
+            loading: false,
+            initialized: true
+          });
+          
+          // Cache the session
+          localStorage.setItem('animemaze_cached_session', JSON.stringify(user));
+          localStorage.setItem('animemaze_cached_profile', JSON.stringify(fallbackProfile));
+        } else {
+          set({ user, profile: profile as Profile, loading: false, initialized: true });
+          
+          // Cache the session
+          localStorage.setItem('animemaze_cached_session', JSON.stringify(user));
+          localStorage.setItem('animemaze_cached_profile', JSON.stringify(profile));
+        }
+      } catch (err) {
+        const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);
+        const fallbackProfile = localSaved ? JSON.parse(localSaved) : {
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || '',
+          role: 'user',
+          created_at: new Date().toISOString()
+        };
+        
+        set({
+          user,
+          profile: fallbackProfile,
           loading: false,
           initialized: true
         });
+        
+        // Cache the session
+        localStorage.setItem('animemaze_cached_session', JSON.stringify(user));
+        localStorage.setItem('animemaze_cached_profile', JSON.stringify(fallbackProfile));
       }
     } else {
+      // Clear cache on sign out
+      localStorage.removeItem('animemaze_cached_session');
+      localStorage.removeItem('animemaze_cached_profile');
       set({ user: null, profile: null, loading: false, initialized: true });
     }
   });
@@ -139,6 +158,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
         if (email === 'admin@animemaze.com' && password === 'admin123') {
           localStorage.setItem('animemaze_mock_session', 'true');
           localStorage.setItem('animemaze_mock_user_id', 'mock-admin-id');
+          localStorage.setItem('animemaze_cached_session', JSON.stringify(MOCK_ADMIN_USER));
+          localStorage.setItem('animemaze_cached_profile', JSON.stringify(MOCK_ADMIN_PROFILE));
           set({
             user: MOCK_ADMIN_USER,
             profile: MOCK_ADMIN_PROFILE,
@@ -152,6 +173,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
         if (email === 'user@animemaze.com' && password === 'user123') {
           localStorage.setItem('animemaze_mock_session', 'true');
           localStorage.setItem('animemaze_mock_user_id', 'mock-user-id');
+          localStorage.setItem('animemaze_cached_session', JSON.stringify(MOCK_USER));
+          localStorage.setItem('animemaze_cached_profile', JSON.stringify(MOCK_USER_PROFILE));
           set({
             user: MOCK_USER,
             profile: MOCK_USER_PROFILE,
@@ -185,6 +208,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
             role: matchedLocal.role || 'user',
             created_at: matchedLocal.created_at
           };
+          localStorage.setItem('animemaze_cached_session', JSON.stringify(userObj));
+          localStorage.setItem('animemaze_cached_profile', JSON.stringify(profileObj));
           set({
             user: userObj,
             profile: profileObj,
@@ -200,7 +225,54 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     checkSession: async () => {
-      set({ loading: true });
+      // Check for cached session first for instant restoration
+      const cachedSession = localStorage.getItem('animemaze_cached_session');
+      const cachedProfile = localStorage.getItem('animemaze_cached_profile');
+      
+      if (cachedSession && cachedProfile) {
+        try {
+          const sessionData = JSON.parse(cachedSession);
+          const profileData = JSON.parse(cachedProfile);
+          
+          // Restore from cache instantly
+          set({
+            user: sessionData,
+            profile: profileData,
+            loading: false,
+            initialized: true
+          });
+          
+          // Validate session in background without blocking UI
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+              // Session invalid, clear cache and state
+              localStorage.removeItem('animemaze_cached_session');
+              localStorage.removeItem('animemaze_cached_profile');
+              set({ user: null, profile: null, loading: false, initialized: true });
+            } else {
+              // Session valid, refresh profile in background
+              supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single()
+                .then(({ data: profile }) => {
+                  if (profile) {
+                    localStorage.setItem('animemaze_cached_profile', JSON.stringify(profile));
+                    set({ profile: profile as Profile });
+                  }
+                });
+            }
+          });
+          return;
+        } catch (e) {
+          // Cache corrupted, clear and continue
+          localStorage.removeItem('animemaze_cached_session');
+          localStorage.removeItem('animemaze_cached_profile');
+        }
+      }
+
+      // No cached session, check mock sessions
       if (localStorage.getItem('animemaze_mock_session') === 'true') {
         const mockUserId = localStorage.getItem('animemaze_mock_user_id') || '';
         
@@ -260,6 +332,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
         localStorage.removeItem('animemaze_mock_session');
         localStorage.removeItem('animemaze_mock_user_id');
       }
+
+      // No cached session, set loading state
+      set({ loading: true });
+      
       try {
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 4000);
         if (session?.user) {
@@ -275,21 +351,31 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
           if (error) {
             const localSaved = localStorage.getItem(`animemaze_profile_${user.id}`);
+            const fallbackProfile = localSaved ? JSON.parse(localSaved) : {
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              avatar_url: user.user_metadata?.avatar_url || '',
+              role: 'user',
+              created_at: new Date().toISOString()
+            };
+            
             set({
               user,
-              profile: localSaved ? JSON.parse(localSaved) : {
-                id: user.id,
-                email: user.email || '',
-                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-                avatar_url: user.user_metadata?.avatar_url || '',
-                role: 'user',
-                created_at: new Date().toISOString()
-              },
+              profile: fallbackProfile,
               loading: false,
               initialized: true
             });
+            
+            // Cache the session for instant restoration
+            localStorage.setItem('animemaze_cached_session', JSON.stringify(user));
+            localStorage.setItem('animemaze_cached_profile', JSON.stringify(fallbackProfile));
           } else {
             set({ user, profile: profile as Profile, loading: false, initialized: true });
+            
+            // Cache the session for instant restoration
+            localStorage.setItem('animemaze_cached_session', JSON.stringify(user));
+            localStorage.setItem('animemaze_cached_profile', JSON.stringify(profile));
           }
         } else {
           set({ user: null, profile: null, loading: false, initialized: true });
@@ -304,6 +390,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ loading: true });
       localStorage.removeItem('animemaze_mock_session');
       localStorage.removeItem('animemaze_mock_user_id');
+      localStorage.removeItem('animemaze_cached_session');
+      localStorage.removeItem('animemaze_cached_profile');
       try {
         await supabase.auth.signOut();
       } catch (err) {
