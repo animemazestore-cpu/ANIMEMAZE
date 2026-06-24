@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { supabase } from '../lib/supabase';
 import { Button } from '../components/common/Button';
 
 export const Cart: React.FC = () => {
@@ -10,13 +11,44 @@ export const Cart: React.FC = () => {
   const { user } = useAuthStore();
   const { items, updateQuantity, removeItem, clearCart, getTotalAmount, getTotalItems } = useCartStore();
 
-  const [couponCode, setCouponCode] = React.useState('');
-  const [appliedCoupon, setAppliedCoupon] = React.useState<any>(() => {
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(() => {
     return JSON.parse(localStorage.getItem('animemaze_applied_coupon') || 'null');
   });
-  const [couponError, setCouponError] = React.useState('');
+  const [couponError, setCouponError] = useState('');
+  const [dbCoupons, setDbCoupons] = useState<any[]>([]);
 
   const subtotal = getTotalAmount();
+
+  // Fetch coupons from database
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const { data: coupons, error } = await supabase
+          .from('coupons')
+          .select('*')
+          .eq('active', true);
+        
+        if (error) throw error;
+        
+        const mappedCoupons = coupons ? coupons.map((c: any) => ({
+          id: c.id,
+          code: c.code,
+          type: c.discount_type || c.type,
+          value: Number(c.discount_value !== undefined ? c.discount_value : c.value),
+          minOrder: Number(c.min_order_amount !== undefined ? c.min_order_amount : c.min_order),
+          active: c.active,
+          created_at: c.created_at
+        })) : [];
+        
+        setDbCoupons(mappedCoupons);
+      } catch (err) {
+        console.warn('Failed to fetch coupons from DB:', err);
+      }
+    };
+    
+    fetchCoupons();
+  }, []);
 
   // Auto-remove coupon if subtotal falls below minimum order amount
   React.useEffect(() => {
@@ -40,7 +72,7 @@ export const Cart: React.FC = () => {
       { code: 'FREE99', type: 'FIXED', value: 99, minOrder: 0, active: true }
     ];
 
-    const allCoupons = [...defaultCoupons];
+    const allCoupons = [...defaultCoupons, ...dbCoupons];
     localCoupons.forEach((c: any) => {
       if (!allCoupons.some(ac => ac.code === c.code)) {
         allCoupons.push(c);

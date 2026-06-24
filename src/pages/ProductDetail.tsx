@@ -219,7 +219,7 @@ export const ProductDetail: React.FC = () => {
     setReviewImages(reviewImages.filter((_, idx) => idx !== index));
   };
 
-  // Submit Review — always try Supabase first, localStorage fallback
+  // Submit Review — upload images to Supabase storage
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
@@ -229,28 +229,26 @@ export const ProductDetail: React.FC = () => {
     try {
       const uploadedUrls: string[] = [];
 
-      // Try uploading images to Supabase storage
+      // Upload images to Supabase storage
       for (const file of reviewImages) {
-        try {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
 
-          const { error: uploadError } = await supabase.storage
-            .from('review-images')
-            .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+          .from('review-images')
+          .upload(filePath, file);
 
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('review-images')
-            .getPublicUrl(filePath);
-
-          uploadedUrls.push(publicUrl);
-        } catch (uploadErr) {
-          console.warn('Image upload failed, using object URL instead:', uploadErr);
-          uploadedUrls.push(URL.createObjectURL(file));
+        if (uploadError) {
+          console.error('Image upload failed:', uploadError);
+          throw new Error('Failed to upload review images. Please try again.');
         }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('review-images')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
       }
 
       const reviewPayload = {
@@ -264,7 +262,6 @@ export const ProductDetail: React.FC = () => {
         status: 'APPROVED'
       };
 
-      // Always try Supabase
       const { data: insertedReview, error: reviewError } = await supabase
         .from('reviews')
         .insert(reviewPayload)
@@ -869,7 +866,15 @@ export const ProductDetail: React.FC = () => {
                     <div className="flex gap-2 pl-12">
                       {review.review_images.map((img, idx) => (
                         <a key={idx} href={img} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity">
-                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={img}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.parentElement?.classList.add('hidden');
+                            }}
+                          />
                         </a>
                       ))}
                     </div>
