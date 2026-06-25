@@ -4,6 +4,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { useCatalogStore } from './store/useCatalogStore';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
+import { AppDownloadPopup } from './components/common/AppDownloadPopup';
 
 // Import Pages
 import { Home } from './pages/Home';
@@ -76,6 +77,9 @@ export const App: React.FC = () => {
 
         <Footer />
       </div>
+
+      {/* Global App Download Popup */}
+      <AppDownloadPopup />
     </Router>
   );
 };
