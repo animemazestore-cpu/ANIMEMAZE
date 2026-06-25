@@ -199,6 +199,17 @@ export const Auth: React.FC = () => {
               </p>
             </div>
 
+            {/* Spam Warning */}
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+              <p className="text-amber-800 font-bold text-sm flex items-center justify-center gap-2">
+                <span className="text-lg">⚠️</span>
+                CHECK YOUR SPAM FOLDER!
+              </p>
+              <p className="text-amber-700 text-xs mt-1">
+                If you don't see the email in your inbox, check your spam/junk folder.
+              </p>
+            </div>
+
             {message && (
               <div
                 className={`p-4 rounded-lg text-sm border font-medium ${
@@ -283,15 +294,30 @@ export const Auth: React.FC = () => {
         ) : (
           <div className="glass-card p-8 rounded-2xl border border-gray-200 shadow-sm">
             {message && (
-              <div
-                className={`mb-6 p-4 rounded-lg text-sm border font-medium ${
-                  message.type === 'success'
-                    ? 'bg-success/10 border-success/30 text-success'
-                    : 'bg-danger/10 border-danger/30 text-danger'
-                }`}
-              >
-                {message.text}
-              </div>
+              <>
+                <div
+                  className={`mb-4 p-4 rounded-lg text-sm border font-medium ${
+                    message.type === 'success'
+                      ? 'bg-success/10 border-success/30 text-success'
+                      : 'bg-danger/10 border-danger/30 text-danger'
+                  }`}
+                >
+                  {message.text}
+                </div>
+
+                {/* Spam Warning for password reset */}
+                {message.type === 'success' && isForgotPassword && (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-4">
+                    <p className="text-amber-800 font-bold text-sm flex items-center justify-center gap-2">
+                      <span className="text-lg">⚠️</span>
+                      CHECK YOUR SPAM FOLDER!
+                    </p>
+                    <p className="text-amber-700 text-xs mt-1">
+                      If you don't see the email in your inbox, check your spam/junk folder.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
