@@ -7,7 +7,7 @@ import type { Product, Category, Order, ProductQuestion, Review, NewsletterSubsc
 import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar, Copy, MapPin } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar, Copy, MapPin, Menu, X as CloseIcon } from 'lucide-react';
 
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +16,9 @@ export const Admin: React.FC = () => {
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'verification' | 'products' | 'categories' | 'orders' | 'inventory' | 'questions' | 'reviews' | 'subscribers' | 'replacements' | 'coupons' | 'announcement'>('verification');
+  
+  // Mobile drawer state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Database Data States
   const [products, setProducts] = useState<Product[]>([]);
@@ -757,45 +760,109 @@ export const Admin: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="flex min-h-screen bg-gray-50">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-danger" />
-            <span>Admin Control Panel</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage payments, inventory, catalogs, Q&A, and reviews</p>
-        </div>
-        <Button size="sm" variant="outline" onClick={loadAdminData}>
-          Refresh Dashboard Data
-        </Button>
-      </div>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-gray-200"
+      >
+        <Menu className="h-6 w-6 text-gray-700" />
+      </button>
 
-      {/* Tabs list */}
-      <div className="flex border-b border-gray-200 overflow-x-auto pb-2 mb-8 gap-2">
-        {(['verification', 'products', 'categories', 'orders', 'inventory', 'questions', 'reviews', 'subscribers', 'replacements', 'coupons', 'announcement'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex-shrink-0 border ${
-              activeTab === tab
-                ? 'bg-danger/10 border-danger text-danger'
-                : 'border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
-          >
-            {tab.replace('_', ' ')}
-          </button>
-        ))}
-      </div>
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
-      {loadingData ? (
-        <div className="py-20 flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
+      {/* Sidebar / Drawer */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Sidebar Header */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-8 w-8 text-danger" />
+                <h1 className="text-xl font-extrabold text-gray-900">Admin Panel</h1>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="lg:hidden p-1 hover:bg-gray-100 rounded"
+              >
+                <CloseIcon className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">Manage your store</p>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {(['verification', 'products', 'categories', 'orders', 'inventory', 'questions', 'reviews', 'subscribers', 'replacements', 'coupons', 'announcement'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all flex items-center gap-3 ${
+                  activeTab === tab
+                    ? 'bg-danger/10 text-danger border border-danger/20'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent'
+                }`}
+              >
+                <span className="flex-1">{tab.replace('_', ' ')}</span>
+                {activeTab === tab && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-danger" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-gray-200">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={loadAdminData}
+              className="w-full"
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Refresh Data
+            </Button>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-8">
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-4 lg:p-8 lg:ml-0">
+        <div className="max-w-7xl mx-auto">
+          {/* Desktop Header */}
+          <div className="hidden lg:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="h-8 w-8 text-danger" />
+                <span>Admin Control Panel</span>
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">Manage payments, inventory, catalogs, Q&A, and reviews</p>
+            </div>
+          </div>
+
+          {/* Mobile Header Spacer */}
+          <div className="lg:hidden h-16" />
+
+          {loadingData ? (
+            <div className="py-20 flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
+            </div>
+          ) : (
+            <div className="space-y-8">
           
           {/* TAB 1: Payment Verification Panel */}
           {activeTab === 'verification' && (
@@ -2052,7 +2119,8 @@ export const Admin: React.FC = () => {
           </div>
         </div>
       )}
-
+        </div>
+      </main>
     </div>
   );
 };
