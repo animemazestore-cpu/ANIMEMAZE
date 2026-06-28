@@ -5,6 +5,7 @@ import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/common/Button';
+import { CartItemSkeleton } from '../components/skeleton/CartItemSkeleton';
 
 export const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export const Cart: React.FC = () => {
   });
   const [couponError, setCouponError] = useState('');
   const [dbCoupons, setDbCoupons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const subtotal = getTotalAmount();
 
@@ -44,6 +46,8 @@ export const Cart: React.FC = () => {
         setDbCoupons(mappedCoupons);
       } catch (err) {
         console.warn('Failed to fetch coupons from DB:', err);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -168,7 +172,13 @@ export const Cart: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {items.map(({ product, quantity, selectedVariant }) => (
+            {loading ? (
+              <>
+                <CartItemSkeleton />
+                <CartItemSkeleton />
+                <CartItemSkeleton />
+              </>
+            ) : items.map(({ product, quantity, selectedVariant }) => (
               <div
                 key={`${product.id}-${selectedVariant || ''}`}
                 className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-center gap-4 sm:gap-6"

@@ -10,6 +10,7 @@ import { useCatalogStore } from '../store/useCatalogStore';
 import { Button } from '../components/common/Button';
 import { ProductDetailSkeleton } from '../components/product/ProductDetailSkeleton';
 import { ProductImage } from '../components/product/ProductImage';
+import { ProductImageGallery } from '../components/product/ProductImageGallery';
 import { ProductDescription } from '../components/product/ProductDescription';
 
 export const ProductDetail: React.FC = () => {
@@ -38,7 +39,6 @@ export const ProductDetail: React.FC = () => {
   // Q&A Form States
   const [newQuestion, setNewQuestion] = useState('');
 
-  const [activeImage, setActiveImage] = useState('');
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [userCanReview, setUserCanReview] = useState(false);
@@ -57,7 +57,6 @@ export const ProductDetail: React.FC = () => {
 
       if (cacheFresh) {
         setProduct(cached.product);
-        setActiveImage(cached.product.main_image_url);
         setLoading(false);
         const related = await getRelatedProducts(
           cached.product.id,
@@ -78,7 +77,6 @@ export const ProductDetail: React.FC = () => {
           setRelatedProducts([]);
         } else {
           setProduct(fetchedProduct);
-          setActiveImage(fetchedProduct.main_image_url);
 
           const related = await getRelatedProducts(
             fetchedProduct.id,
@@ -477,40 +475,11 @@ export const ProductDetail: React.FC = () => {
       {/* Main product display */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {/* Left Side: Images */}
-        <div className="lg:col-span-5 flex flex-col space-y-3">
-          <div className="aspect-square sm:aspect-[4/5] lg:aspect-square bg-gray-50 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 relative lg:max-h-[440px]">
-            <ProductImage
-              src={activeImage}
-              alt={product.name}
-              className="w-full h-full object-contain"
-              priority
-              sizes="(max-width: 1024px) 100vw, 440px"
-            />
-          </div>
-          {/* Thumbnails */}
-          {product.additional_images && product.additional_images.length > 0 && (
-            <div className="flex space-x-2 overflow-x-auto pb-2">
-              <button
-                onClick={() => setActiveImage(product.main_image_url)}
-                className={`w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
-                  activeImage === product.main_image_url ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <ProductImage src={product.main_image_url} alt="" className="w-full h-full object-contain" sizes="64px" />
-              </button>
-              {product.additional_images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImage(img)}
-                  className={`w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-lg sm:rounded-xl overflow-hidden border flex-shrink-0 transition-all ${
-                    activeImage === img ? 'border-primary scale-95' : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  <ProductImage src={img} alt="" className="w-full h-full object-contain" sizes="64px" />
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-5">
+          <ProductImageGallery 
+            images={[product.main_image_url, ...(product.additional_images || [])]} 
+            productName={product.name}
+          />
         </div>
 
         {/* Right Side: Details & Add to Cart */}

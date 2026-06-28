@@ -8,6 +8,7 @@ import { Button } from '../components/common/Button';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
 import { CategoryCardSkeleton } from '../components/product/CategoryCardSkeleton';
+import { HeroSkeleton } from '../components/skeleton/HeroSkeleton';
 import { ProductImage } from '../components/product/ProductImage';
 
 export const Home: React.FC = () => {
@@ -22,10 +23,17 @@ export const Home: React.FC = () => {
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
   const [bgImageLoaded, setBgImageLoaded] = useState(false);
+  const [heroLoading, setHeroLoading] = useState(true);
 
   useEffect(() => {
     void initializeCatalog();
   }, [initializeCatalog]);
+
+  useEffect(() => {
+    // Simulate hero loading
+    const timer = setTimeout(() => setHeroLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const featuredProducts = useMemo(
     () => products.filter((p) => p.featured),
@@ -67,89 +75,93 @@ export const Home: React.FC = () => {
   return (
     <div className="pb-20">
       {/* Hero */}
-      <section className="relative bg-gray-50 border-b border-gray-200 overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <motion.div
-            animate={{
-              y: [0, -20, 0],
-              scale: [1, 1.02, 1],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="w-full h-full"
-          >
-            <img
-              src="/hero_bg.png"
-              alt=""
-              className={`w-full h-full object-cover transition-opacity duration-700 ${bgImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              loading="eager"
-              onLoad={() => setBgImageLoaded(true)}
-            />
-          </motion.div>
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/85 via-gray-100/80 to-gray-50/85" />
-          {/* Gradient Masking at edges */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-gray-50/30" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="text-center lg:text-left space-y-8">
-              <div className="space-y-4">
-                <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-                  Premium Anime Merchandise
-                </p>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 leading-tight">
-                  Collect, wear, and display your favourite anime worlds
-                </h1>
-                <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                  Action figures, apparel, display props, and accessories — curated for fans who care about quality.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <button
-                  onClick={() => navigate('/shop')}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-white bg-primary hover:bg-primary-dark shadow-sm transition-colors"
-                >
-                  <ShoppingBag className="h-5 w-5" />
-                  Shop All Products
-                </button>
-                <button
-                  onClick={() => navigate('/shop')}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-gray-700 border border-gray-300 bg-white hover:border-primary hover:text-primary transition-colors"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Browse Categories
-                </button>
-              </div>
-
-              <ul className="space-y-3 pt-2 border-t border-gray-200">
-                {trustPoints.map(({ icon: Icon, label }) => (
-                  <li key={label} className="flex items-center gap-3 text-sm text-gray-600 justify-center lg:justify-start">
-                    <Icon className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden lg:flex items-center justify-center">
+      {heroLoading ? (
+        <HeroSkeleton />
+      ) : (
+        <section className="relative bg-gray-50 border-b border-gray-200 overflow-hidden">
+          {/* Background Image with Overlay */}
+          <div className="absolute inset-0 z-0">
+            <motion.div
+              animate={{
+                y: [0, -20, 0],
+                scale: [1, 1.02, 1],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="w-full h-full"
+            >
               <img
                 src="/hero_bg.png"
-                alt="Anime merchandise collection"
-                className={`w-full max-w-lg object-contain transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                alt=""
+                className={`w-full h-full object-cover transition-opacity duration-700 ${bgImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="eager"
-                onLoad={() => setHeroImageLoaded(true)}
+                onLoad={() => setBgImageLoaded(true)}
               />
+            </motion.div>
+            {/* Dark Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/85 via-gray-100/80 to-gray-50/85" />
+            {/* Gradient Masking at edges */}
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-transparent to-gray-50/30" />
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              <div className="text-center lg:text-left space-y-8">
+                <div className="space-y-4">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                    Premium Anime Merchandise
+                  </p>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 leading-tight">
+                    Collect, wear, and display your favourite anime worlds
+                  </h1>
+                  <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                    Action figures, apparel, display props, and accessories — curated for fans who care about quality.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                  <button
+                    onClick={() => navigate('/shop')}
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-white bg-primary hover:bg-primary-dark shadow-sm transition-colors"
+                  >
+                    <ShoppingBag className="h-5 w-5" />
+                    Shop All Products
+                  </button>
+                  <button
+                    onClick={() => navigate('/shop')}
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-gray-700 border border-gray-300 bg-white hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    Browse Categories
+                  </button>
+                </div>
+
+                <ul className="space-y-3 pt-2 border-t border-gray-200">
+                  {trustPoints.map(({ icon: Icon, label }) => (
+                    <li key={label} className="flex items-center gap-3 text-sm text-gray-600 justify-center lg:justify-start">
+                      <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>{label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="hidden lg:flex items-center justify-center">
+                <img
+                  src="/hero_bg.png"
+                  alt="Anime merchandise collection"
+                  className={`w-full max-w-lg object-contain transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  loading="eager"
+                  onLoad={() => setHeroImageLoaded(true)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Categories */}
       {(categories.length > 0 || showCategorySkeleton) && (
