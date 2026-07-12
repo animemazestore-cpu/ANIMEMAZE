@@ -18,12 +18,10 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
 
   // Detect mobile device
   useLayoutEffect(() => {
@@ -216,7 +214,8 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
     lastTapRef.current = now;
   }, [isZoomed, zoomIn, resetZoom]);
 
-  // Pinch to zoom
+  // Pinch to zoom (currently unused)
+  /*
   const initialPinchDistance = useRef(0);
   const handlePinchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -238,6 +237,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
       setIsZoomed(true);
     }
   };
+  */
 
   // Mouse drag for zoom pan with RAF optimization
   const handleMouseDown = (e: React.MouseEvent) => {

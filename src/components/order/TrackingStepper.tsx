@@ -24,7 +24,7 @@ export const TrackingStepper: React.FC<TrackingStepperProps> = ({ status, tracki
 
   const getStatusIndex = (currentStatus: OrderStatus): number => {
     switch (currentStatus) {
-      case 'PENDING_VERIFICATION': return 0;
+      case 'PENDING_PAYMENT': return 0;
       case 'PAID': return 1;
       case 'PROCESSING': return 2;
       case 'SHIPPED': return 3;

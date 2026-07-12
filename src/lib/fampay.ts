@@ -1,9 +1,6 @@
-// Use proxy for development, direct API for production with CORS handling
+// Use '/api' prefix for both development (via Vite proxy) and production (via Vercel functions)
 const getBaseUrl = () => {
-  if (import.meta.env.DEV) {
-    return '/api/fampay'; // Vite proxy for development
-  }
-  return '/api'; // Vercel serverless functions for production
+  return '/api';
 };
 
 export interface FamPayOrderResponse {

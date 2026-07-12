@@ -1,3 +1,7 @@
+export const config = {
+  runtime: 'edge',
+};
+
 const FAMPAY_API_KEY = 'fmpay_c0deedbc77d3d29dfbac858498bfd10d262a48a2';
 const FAMPAY_BASE_URL = 'https://py.freepanel.in';
 
