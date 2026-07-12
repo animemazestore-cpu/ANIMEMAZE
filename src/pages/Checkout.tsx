@@ -5,7 +5,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { CreditCard, Upload, Check } from 'lucide-react';
+import { CreditCard, Check, RefreshCw } from 'lucide-react';
+import { createFamPayOrder, verifyFamPayOrder, type FamPayOrderResponse, type FamPayVerifyResponse } from '../lib/fampay';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -46,10 +47,11 @@ export const Checkout: React.FC = () => {
   const [pincode, setPincode] = useState('');
   const [country, setCountry] = useState('India');
 
-  // Payment Proof
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-  const [transactionId, setTransactionId] = useState('');
+  // FamPay Payment State
+  const [fampayOrderId, setFampayOrderId] = useState<string | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [orderCreatedId, setOrderCreatedId] = useState<string | null>(null);
@@ -62,15 +64,62 @@ export const Checkout: React.FC = () => {
     }
   }, [items, navigate, orderCreatedId, loading]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file (PNG, JPG, JPEG).');
-        return;
+  // Generate FamPay QR Code on mount
+  useEffect(() => {
+    const generateQR = async () => {
+      if (total > 0) {
+        try {
+          const upiId = import.meta.env.VITE_UPI_ID || '8445619079@fam';
+          const response: FamPayOrderResponse = await createFamPayOrder(upiId, total);
+          if (response.status === 'success') {
+            setFampayOrderId(response.data.order_id);
+            setQrCodeUrl(response.data.qr_url);
+          } else {
+            setErrorMsg('Failed to generate payment QR. Please try again.');
+          }
+        } catch (err) {
+          console.error('FamPay QR generation failed:', err);
+          setErrorMsg('Failed to generate payment QR. Please try again.');
+        }
       }
-      setScreenshotFile(file);
-      setScreenshotPreview(URL.createObjectURL(file));
+    };
+    generateQR();
+  }, [total]);
+
+  // Poll for payment verification
+  useEffect(() => {
+    if (!fampayOrderId || paymentStatus !== 'pending') return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response: FamPayVerifyResponse = await verifyFamPayOrder(fampayOrderId);
+        if (response.status === 'success' && response.data) {
+          setPaymentStatus('paid');
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        console.error('Payment verification failed:', err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [fampayOrderId, paymentStatus]);
+
+  const handleVerifyPayment = async () => {
+    if (!fampayOrderId) return;
+    setIsVerifyingPayment(true);
+    try {
+      const response: FamPayVerifyResponse = await verifyFamPayOrder(fampayOrderId);
+      if (response.status === 'success' && response.data) {
+        setPaymentStatus('paid');
+      } else {
+        setErrorMsg('Payment not yet verified. Please complete the payment and try again.');
+      }
+    } catch (err) {
+      console.error('Manual verification failed:', err);
+      setErrorMsg('Verification failed. Please try again.');
+    } finally {
+      setIsVerifyingPayment(false);
     }
   };
 
@@ -81,12 +130,8 @@ export const Checkout: React.FC = () => {
       navigate('/auth');
       return;
     }
-    if (!screenshotFile) {
-      setErrorMsg('Please upload your payment confirmation screenshot.');
-      return;
-    }
-    if (!transactionId.trim()) {
-      setErrorMsg('Please enter your transaction ID / UTR.');
+    if (paymentStatus !== 'paid') {
+      setErrorMsg('Please complete the payment verification before placing the order.');
       return;
     }
 
@@ -103,7 +148,7 @@ export const Checkout: React.FC = () => {
       state,
       pincode,
       country,
-      transactionId: transactionId.trim(),
+      fampay_order_id: fampayOrderId,
       item_variants: items.map(item => ({
         product_id: item.product.id,
         selected_variant: item.selectedVariant || null
@@ -121,8 +166,8 @@ export const Checkout: React.FC = () => {
         .insert({
           user_id: user.id,
           total_amount: total,
-          status: 'PENDING_VERIFICATION',
-          payment_status: 'PENDING_VERIFICATION',
+          status: 'PAID',
+          payment_status: 'PAID',
           shipping_address: shippingAddressJson,
           estimated_delivery_date: estimatedDeliveryDate.toISOString()
         })
@@ -146,28 +191,6 @@ export const Checkout: React.FC = () => {
         .insert(orderItemsInsert);
 
       if (itemsError) throw itemsError;
-
-      // Upload screenshot (best-effort)
-      try {
-        const fileExt = screenshotFile.name.split('.').pop();
-        const fileName = `${orderId}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('payment-proofs')
-          .upload(fileName, screenshotFile);
-
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(fileName);
-
-          await supabase
-            .from('payment_proof')
-            .insert({ order_id: orderId, screenshot_url: publicUrl });
-        }
-      } catch (_uploadErr) {
-        // Screenshot upload failure is non-fatal — order still placed
-        console.warn('Screenshot upload failed, order still created:', _uploadErr);
-      }
 
       // Update stock (best-effort)
       for (const item of items) {
@@ -194,8 +217,8 @@ export const Checkout: React.FC = () => {
           id: localOrderId,
           user_id: user.id,
           total_amount: total,
-          status: 'PENDING_VERIFICATION',
-          payment_status: 'PENDING_VERIFICATION',
+          status: 'PAID',
+          payment_status: 'PAID',
           shipping_address: shippingAddressJson,
           estimated_delivery_date: estimatedDeliveryDate.toISOString(),
           items: items.map((item, idx) => ({
@@ -207,7 +230,7 @@ export const Checkout: React.FC = () => {
             selected_variant: item.selectedVariant || null
           })),
           created_at: new Date().toISOString(),
-          screenshot_preview: screenshotPreview // data URL from FileReader
+          fampay_order_id: fampayOrderId
         };
 
         const existingOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
@@ -231,12 +254,6 @@ export const Checkout: React.FC = () => {
     }
   };
 
-  // UPI Link generation for QR code
-  const upiId = import.meta.env.VITE_UPI_ID || '8445619079@fam';
-  const upiName = import.meta.env.VITE_UPI_NAME || 'AnimeMaze';
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-    `upi://pay?pa=${upiId}&pn=${upiName}&am=${total}&cu=INR&tn=AnimeMaze%20Order`
-  )}`;
 
   if (orderCreatedId) {
     const formattedDeliveryDate = orderDeliveryDate 
@@ -250,7 +267,7 @@ export const Checkout: React.FC = () => {
         </div>
         <h2 className="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
         <p className="text-gray-500 text-sm leading-relaxed">
-          Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. We have received your UPI screenshot and are currently verifying the payment. You can track this in your dashboard.
+          Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. Payment has been verified automatically via FamPay. You can track this in your dashboard.
         </p>
         {formattedDeliveryDate && (
           <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
@@ -419,74 +436,62 @@ export const Checkout: React.FC = () => {
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 space-y-2">
               <p className="font-bold text-gray-900">Instructions:</p>
               <ol className="list-decimal pl-4 space-y-1">
-                <li>Scan the QR code or copy the UPI ID below.</li>
+                <li>Scan the QR code below using any UPI app.</li>
                 <li>Pay the exact amount: <strong className="text-gray-900">₹{total}</strong></li>
-                <li>Take a screenshot of the successful payment.</li>
-                <li>Upload the screenshot and press "Place Order".</li>
+                <li>Payment will be verified automatically within 30 seconds.</li>
+                <li>Once verified, click "Place Order" to complete.</li>
               </ol>
             </div>
 
             {/* QR display */}
             <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[220px] mx-auto border border-gray-200">
-              <img src={qrCodeUrl} alt="UPI QR Code" className="w-full h-auto" />
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="UPI QR Code" className="w-full h-auto" />
+              ) : (
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-primary" />
+              )}
               <span className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-wide">
                 Scan using GPay / PhonePe / Paytm
               </span>
             </div>
 
-            <div className="text-center space-y-1">
-              <p className="text-xs text-gray-500">Merchant UPI ID:</p>
-              <p className="text-sm font-bold text-secondary select-all">{upiId}</p>
-            </div>
-
-            {/* Screenshot file upload */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-gray-400 block">
-                Upload Payment Screenshot <span className="text-danger">*</span>:
-              </label>
-
-              {screenshotPreview ? (
-                <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-100 flex items-center justify-center">
-                  <img src={screenshotPreview} alt="Screenshot Preview" className="h-full object-contain" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setScreenshotFile(null);
-                      setScreenshotPreview(null);
-                    }}
-                    className="absolute top-2 right-2 bg-danger text-white text-[10px] font-bold px-2 py-1 rounded hover:brightness-110"
-                  >
-                    Change
-                  </button>
-                </div>
-              ) : (
-                <label className="border border-gray-300 hover:border-gray-400 border-dashed rounded-xl p-8 bg-gray-50 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-xs text-gray-400 font-medium">Click to upload screenshot</span>
-                  <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, JPEG</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    required
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </label>
+            {/* Payment Status */}
+            <div className={`p-3 rounded-xl border text-center ${
+              paymentStatus === 'paid' 
+                ? 'bg-success/10 border-success/20 text-success' 
+                : 'bg-warning/10 border-warning/20 text-warning'
+            }`}>
+              <p className="text-xs font-bold uppercase tracking-wider">
+                {paymentStatus === 'paid' ? '✓ Payment Verified' : '⏳ Awaiting Payment'}
+              </p>
+              {paymentStatus === 'pending' && (
+                <p className="text-[10px] mt-1 opacity-75">Auto-verifying every 5 seconds...</p>
               )}
             </div>
 
-            {/* Transaction ID */}
-            <Input
-              label="Transaction ID / UTR *"
-              type="text"
-              required
-              placeholder="Enter 12-digit UPI Transaction ID or UTR"
-              value={transactionId}
-              onChange={(e) => setTransactionId(e.target.value)}
-            />
+            {paymentStatus === 'pending' && (
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                size="sm"
+                onClick={handleVerifyPayment}
+                loading={isVerifyingPayment}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Check Payment Status
+              </Button>
+            )}
 
-            <Button type="submit" fullWidth size="lg" loading={loading}>
-              Place Order (Verify Payment)
+
+            <Button 
+              type="submit" 
+              fullWidth 
+              size="lg" 
+              loading={loading}
+              disabled={paymentStatus !== 'paid'}
+            >
+              {paymentStatus === 'paid' ? 'Place Order' : 'Complete Payment First'}
             </Button>
           </div>
         </div>

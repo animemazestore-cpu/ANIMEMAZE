@@ -7,7 +7,7 @@ import type { Product, Category, Order, ProductQuestion, Review, NewsletterSubsc
 import { sanitizeSlug } from '../lib/persistence';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, AlertTriangle, Eye, RefreshCcw, Tag, Megaphone, Calendar, Copy, MapPin, Menu, X as CloseIcon } from 'lucide-react';
+import { ShieldCheck, Plus, Edit, Trash2, Check, X, CreditCard, ShoppingBag, List, MessageSquare, Star, Mail, Download, RefreshCcw, Tag, Megaphone, Calendar, Copy, MapPin, Menu, AlertTriangle, X as CloseIcon } from 'lucide-react';
 
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -55,8 +55,6 @@ export const Admin: React.FC = () => {
     size_enabled: false
   });
 
-  // Selected Order for screenshot view
-  const [viewScreenshotUrl, setViewScreenshotUrl] = useState<string | null>(null);
 
   // Tracking Modal States
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -556,32 +554,6 @@ export const Admin: React.FC = () => {
     }
   };
 
-  // --- Actions: Order Payment Verification --- always try DB first
-  const handleVerifyPayment = async (orderId: string, approve: boolean) => {
-    const confirmation = window.confirm(`Are you sure you want to ${approve ? 'APPROVE' : 'REJECT'} payment for this order?`);
-    if (!confirmation) return;
-
-    const paymentStatus = approve ? 'PAID' : 'REJECTED';
-    const orderStatus = approve ? 'PAID' : 'CANCELLED';
-
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          payment_status: paymentStatus,
-          status: orderStatus
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-      alert(`Order payment was successfully ${approve ? 'Approved' : 'Rejected'}.`);
-      loadAdminData();
-    } catch (err: any) {
-      console.error('Order verify failed:', err);
-      alert('Failed to verify payment: ' + (err.message || err));
-    }
-  };
-
   // --- Actions: Update Order Status --- always try DB first
   const performOrderStatusUpdate = async (orderId: string, status: string, trackingInfo?: { carrier: string; tracking_number: string; shipped_at: string }) => {
     try {
@@ -869,8 +841,15 @@ export const Admin: React.FC = () => {
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
               <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
                 <CreditCard className="h-5.5 w-5.5 text-secondary" />
-                <span>UPI Screenshot Verification</span>
+                <span>FamPay Payment Verification</span>
               </h2>
+
+              <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+                <p className="text-sm text-gray-700">
+                  <strong className="text-primary">Note:</strong> Payments are now automatically verified via FamPay API. 
+                  Manual verification is no longer required. This panel shows recent paid orders for reference.
+                </p>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-gray-600">
@@ -879,20 +858,21 @@ export const Admin: React.FC = () => {
                       <th className="px-6 py-4">Order ID</th>
                       <th className="px-6 py-4">Customer Details</th>
                       <th className="px-6 py-4">Amount</th>
-                      <th className="px-6 py-4 text-center">Payment Proof</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
+                      <th className="px-6 py-4 text-center">FamPay Order ID</th>
+                      <th className="px-6 py-4 text-center">Payment Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {orders.filter(o => o.payment_status === 'PENDING_VERIFICATION').length === 0 ? (
+                    {orders.filter(o => o.payment_status === 'PAID').length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500 italic">
-                          No orders pending payment verification.
+                          No paid orders found.
                         </td>
                       </tr>
                     ) : (
                       orders
-                        .filter(o => o.payment_status === 'PENDING_VERIFICATION')
+                        .filter(o => o.payment_status === 'PAID')
+                        .slice(0, 10)
                         .map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-bold text-xs truncate max-w-[120px]">{order.id}</td>
@@ -902,49 +882,24 @@ export const Admin: React.FC = () => {
                                 <p className="text-xs text-gray-500">{order.shipping_address?.phone}</p>
                                 <p className="text-[10px] text-gray-400">{order.shipping_address?.email}</p>
                                 <p className="text-xs text-gray-600 truncate">{order.shipping_address?.address}</p>
-                                {order.shipping_address?.landmark && (
-                                  <p className="text-[10px] text-gray-400 italic">Landmark: {order.shipping_address.landmark}</p>
-                                )}
                                 <p className="text-xs text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
-                                {order.shipping_address?.country && (
-                                  <p className="text-[10px] text-gray-400">{order.shipping_address.country}</p>
-                                )}
-                                {order.shipping_address?.transactionId && (
-                                  <p className="text-xs text-amber-600 font-mono mt-1 select-all">TXID: {order.shipping_address.transactionId}</p>
-                                )}
                               </div>
                             </td>
                             <td className="px-6 py-4 font-extrabold text-gray-900">₹{order.total_amount}</td>
                             <td className="px-6 py-4 text-center">
-                              {order.payment_proof?.screenshot_url || (order as any).screenshot_preview ? (
-                                <button
-                                  onClick={() => setViewScreenshotUrl(order.payment_proof?.screenshot_url || (order as any).screenshot_preview || null)}
-                                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 rounded-lg text-xs font-semibold"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  <span>View Proof</span>
-                                </button>
-                              ) : (
-                                <span className="text-xs text-danger font-medium flex items-center justify-center gap-1">
-                                  <AlertTriangle className="h-3.5 w-3.5" /> Missing
+                              {order.shipping_address?.fampay_order_id ? (
+                                <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
+                                  {order.shipping_address.fampay_order_id}
                                 </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">N/A</span>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-right space-x-2">
-                              <button
-                                onClick={() => handleVerifyPayment(order.id, true)}
-                                className="p-2 bg-success/20 border border-success/30 text-success rounded-lg hover:bg-success/35"
-                                title="Approve Payment"
-                              >
-                                <Check className="h-4.5 w-4.5" />
-                              </button>
-                              <button
-                                onClick={() => handleVerifyPayment(order.id, false)}
-                                className="p-2 bg-danger/20 border border-danger/30 text-danger rounded-lg hover:bg-danger/35"
-                                title="Reject Payment"
-                              >
-                                <X className="h-4.5 w-4.5" />
-                              </button>
+                            <td className="px-6 py-4 text-center">
+                              <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-success/10 border border-success/20 text-success rounded-lg text-xs font-semibold">
+                                <Check className="h-3.5 w-3.5" />
+                                <span>Auto-Verified</span>
+                              </span>
                             </td>
                           </tr>
                         ))
@@ -1964,24 +1919,6 @@ export const Admin: React.FC = () => {
       )}
 
 
-
-
-      {viewScreenshotUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
-          <div className="relative max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-4 flex flex-col items-center">
-            <button
-              onClick={() => setViewScreenshotUrl(null)}
-              className="absolute top-4 right-4 p-2 bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full border border-gray-300 focus:outline-none"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <h3 className="text-base font-bold text-gray-900 mb-4">Payment Screenshot Details</h3>
-            <div className="w-full bg-gray-100 rounded-xl overflow-hidden border border-gray-200 max-h-[70vh] flex justify-center items-center">
-              <img src={viewScreenshotUrl} alt="UPI Payment screenshot proof" className="max-w-full h-auto object-contain max-h-[68vh]" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* COURIER TRACKING DETAILS MODAL */}
       {isTrackingModalOpen && (

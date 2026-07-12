@@ -44,6 +44,8 @@ export interface ShippingAddress {
   country?: string;
   landmark?: string;
   transactionId?: string;
+  fampay_order_id?: string;
+  fampay_utr?: string;
 }
 
 export interface Order {
