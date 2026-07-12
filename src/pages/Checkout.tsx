@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -20,8 +20,8 @@ export const Checkout: React.FC = () => {
   const subtotal = getTotalAmount();
 
   // Validate if the coupon meets requirements (active, minimum order subtotal)
-  const isCouponValid = appliedCoupon && 
-    (appliedCoupon.active !== false) && 
+  const isCouponValid = appliedCoupon &&
+    (appliedCoupon.active !== false) &&
     (!appliedCoupon.minOrder || subtotal >= appliedCoupon.minOrder);
 
   let discountAmount = 0;
@@ -59,6 +59,15 @@ export const Checkout: React.FC = () => {
   const [paymentTimeout, setPaymentTimeout] = useState<ReturnType<typeof setInterval> | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes in seconds
 
+  // Refs to carry fresh values into polling closure without stale captures
+  const fampayOrderIdRef = useRef<string | null>(null);
+  const paymentStatusRef = useRef<'pending' | 'paid' | 'failed'>('pending');
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { fampayOrderIdRef.current = fampayOrderId; }, [fampayOrderId]);
+  useEffect(() => { paymentStatusRef.current = paymentStatus; }, [paymentStatus]);
+
   // Redirect if cart is empty
   useEffect(() => {
     if (items.length === 0 && !orderCreatedId && !loading) {
@@ -73,6 +82,14 @@ export const Checkout: React.FC = () => {
     };
   }, [paymentTimeout]);
 
+  // Clear cart when payment is confirmed — must be at top-level (not inside conditional)
+  useEffect(() => {
+    if (paymentStatus === 'paid') {
+      clearCart();
+      localStorage.removeItem('animemaze_applied_coupon');
+    }
+  }, [paymentStatus]);
+
   // Generate FamPay QR Code after order is placed
   const generatePaymentQR = async () => {
     if (total > 0) {
@@ -80,10 +97,12 @@ export const Checkout: React.FC = () => {
         const upiId = import.meta.env.VITE_UPI_ID || '8445619079@fam';
         const response: FamPayOrderResponse = await createFamPayOrder(upiId, total);
         if (response.status === 'success') {
-          setFampayOrderId(response.data.order_id);
+          const orderId = response.data.order_id;
+          fampayOrderIdRef.current = orderId; // set ref immediately before state update
+          setFampayOrderId(orderId);
           setQrCodeUrl(response.data.qr_url);
-          // Start payment verification polling
-          startPaymentPolling();
+          // Start payment verification polling — pass orderId directly to avoid stale closure
+          startPaymentPolling(orderId);
           // Start 5-minute timeout
           startPaymentTimeout();
         } else {
@@ -96,19 +115,22 @@ export const Checkout: React.FC = () => {
     }
   };
 
-  const startPaymentPolling = () => {
+  const startPaymentPolling = (orderId: string) => {
+    // Clear any previous poll interval
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
     const pollInterval = setInterval(async () => {
-      if (!fampayOrderId || paymentStatus !== 'pending') {
+      // Read latest status via ref — avoids stale closure
+      if (paymentStatusRef.current !== 'pending') {
         clearInterval(pollInterval);
         return;
       }
 
       try {
-        const response: FamPayVerifyResponse = await verifyFamPayOrder(fampayOrderId);
+        const response: FamPayVerifyResponse = await verifyFamPayOrder(orderId);
         if (response.status === 'success' && response.data) {
-          setPaymentStatus('paid');
           clearInterval(pollInterval);
-          if (paymentTimeout) clearTimeout(paymentTimeout);
+          setPaymentStatus('paid');
           // Update order status to PAID
           await updateOrderStatus('PAID');
         }
@@ -116,6 +138,8 @@ export const Checkout: React.FC = () => {
         console.error('Payment verification failed:', err);
       }
     }, 5000); // Poll every 5 seconds
+
+    pollIntervalRef.current = pollInterval;
   };
 
   const startPaymentTimeout = () => {
@@ -144,12 +168,12 @@ export const Checkout: React.FC = () => {
     try {
       await supabase
         .from('orders')
-        .update({ 
-          status, 
+        .update({
+          status,
           payment_status: status === 'PAID' ? 'PAID' : 'FAILED'
         })
         .eq('id', orderCreatedId);
-      
+
       // If payment successful, update stock
       if (status === 'PAID') {
         for (const item of items) {
@@ -250,7 +274,7 @@ export const Checkout: React.FC = () => {
       setOrderCreatedId(orderId);
       setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
       setLoading(false);
-      
+
       // Generate payment QR and start verification
       await generatePaymentQR();
 
@@ -286,7 +310,7 @@ export const Checkout: React.FC = () => {
         setOrderCreatedId(localOrderId);
         setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
         setLoading(false);
-        
+
         // Generate payment QR and start verification
         await generatePaymentQR();
       } catch (localErr) {
@@ -298,19 +322,12 @@ export const Checkout: React.FC = () => {
     }
   };
 
-
   if (orderCreatedId) {
     // Payment Success Screen
     if (paymentStatus === 'paid') {
-      const formattedDeliveryDate = orderDeliveryDate 
+      const formattedDeliveryDate = orderDeliveryDate
         ? new Date(orderDeliveryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : null;
-
-      // Clear cart only after successful payment
-      useEffect(() => {
-        clearCart();
-        localStorage.removeItem('animemaze_applied_coupon');
-      }, []);
 
       return (
         <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
@@ -375,11 +392,10 @@ export const Checkout: React.FC = () => {
           </p>
 
           {/* Timer */}
-          <div className={`p-3 rounded-xl border text-center ${
-            timeRemaining <= 60 
-              ? 'bg-danger/10 border-danger/20 text-danger' 
+          <div className={`p-3 rounded-xl border text-center ${timeRemaining <= 60
+              ? 'bg-danger/10 border-danger/20 text-danger'
               : 'bg-warning/10 border-warning/20 text-warning'
-          }`}>
+            }`}>
             <p className="text-xs font-bold uppercase tracking-wider">
               Payment expires in: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
             </p>
@@ -443,7 +459,7 @@ export const Checkout: React.FC = () => {
         {/* Left Side: Shipping Address */}
         <div className="lg:col-span-7 space-y-6 bg-white border border-gray-200 p-6 sm:p-8 rounded-2xl shadow-sm">
           <h2 className="text-xl font-bold text-gray-900 mb-4">1. Shipping Information</h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
               <Input
@@ -455,7 +471,7 @@ export const Checkout: React.FC = () => {
                 onChange={(e) => setFullName(e.target.value)}
               />
             </div>
-            
+
             <Input
               label="Phone Number"
               type="tel"
@@ -574,10 +590,10 @@ export const Checkout: React.FC = () => {
               <span>2. UPI Payment</span>
             </h2>
 
-            <Button 
-              type="submit" 
-              fullWidth 
-              size="lg" 
+            <Button
+              type="submit"
+              fullWidth
+              size="lg"
               loading={loading}
             >
               Place Order
