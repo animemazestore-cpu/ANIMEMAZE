@@ -1,5 +1,10 @@
-const FAMPAY_API_KEY = 'fmpay_c0deedbc77d3d29dfbac858498bfd10d262a48a2';
-const FAMPAY_BASE_URL = 'https://py.freepanel.in';
+// Use proxy for development, direct API for production with CORS handling
+const getBaseUrl = () => {
+  if (import.meta.env.DEV) {
+    return '/api/fampay'; // Vite proxy for development
+  }
+  return '/api'; // Vercel serverless functions for production
+};
 
 export interface FamPayOrderResponse {
   status: string;
@@ -27,7 +32,8 @@ export interface FamPayVerifyResponse {
 }
 
 export async function createFamPayOrder(upiId: string, amount: number): Promise<FamPayOrderResponse> {
-  const url = `${FAMPAY_BASE_URL}/qr?api_key=${FAMPAY_API_KEY}&upi=${encodeURIComponent(upiId)}&amount=${amount}`;
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/fampay-qr?upi=${encodeURIComponent(upiId)}&amount=${amount}`;
   
   console.log('FamPay API Request URL:', url);
   
@@ -50,10 +56,25 @@ export async function createFamPayOrder(upiId: string, amount: number): Promise<
 }
 
 export async function verifyFamPayOrder(orderId: string): Promise<FamPayVerifyResponse> {
-  const url = `${FAMPAY_BASE_URL}/verify_order?api_key=${FAMPAY_API_KEY}&order_id=${encodeURIComponent(orderId)}`;
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/fampay-verify?order_id=${encodeURIComponent(orderId)}`;
   
-  const response = await fetch(url);
-  const data = await response.json();
+  console.log('FamPay Verify Request URL:', url);
   
-  return data;
+  try {
+    const response = await fetch(url);
+    console.log('FamPay Verify Response Status:', response.status);
+    
+    const data = await response.json();
+    console.log('FamPay Verify Response Data:', data);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}: ${JSON.stringify(data)}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('FamPay Verify API Error:', error);
+    throw error;
+  }
 }
