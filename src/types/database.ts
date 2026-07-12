@@ -30,8 +30,8 @@ export interface Product {
   category?: Category; // Joined category details
 }
 
-export type OrderStatus = 'PENDING_VERIFICATION' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-export type PaymentStatus = 'PENDING_VERIFICATION' | 'PAID' | 'REJECTED';
+export type OrderStatus = 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type PaymentStatus = 'PENDING_PAYMENT' | 'PAID' | 'FAILED';
 
 export interface ShippingAddress {
   fullName: string;

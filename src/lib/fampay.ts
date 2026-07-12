@@ -29,10 +29,24 @@ export interface FamPayVerifyResponse {
 export async function createFamPayOrder(upiId: string, amount: number): Promise<FamPayOrderResponse> {
   const url = `${FAMPAY_BASE_URL}/qr?api_key=${FAMPAY_API_KEY}&upi=${encodeURIComponent(upiId)}&amount=${amount}`;
   
-  const response = await fetch(url);
-  const data = await response.json();
+  console.log('FamPay API Request URL:', url);
   
-  return data;
+  try {
+    const response = await fetch(url);
+    console.log('FamPay API Response Status:', response.status);
+    
+    const data = await response.json();
+    console.log('FamPay API Response Data:', data);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}: ${JSON.stringify(data)}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('FamPay API Error:', error);
+    throw error;
+  }
 }
 
 export async function verifyFamPayOrder(orderId: string): Promise<FamPayVerifyResponse> {

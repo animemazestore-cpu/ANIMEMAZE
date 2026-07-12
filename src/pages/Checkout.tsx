@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { CreditCard, Check, RefreshCw } from 'lucide-react';
+import { CreditCard, Check, RefreshCw, X } from 'lucide-react';
 import { createFamPayOrder, verifyFamPayOrder, type FamPayOrderResponse, type FamPayVerifyResponse } from '../lib/fampay';
 
 export const Checkout: React.FC = () => {
@@ -56,6 +56,8 @@ export const Checkout: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [orderCreatedId, setOrderCreatedId] = useState<string | null>(null);
   const [orderDeliveryDate, setOrderDeliveryDate] = useState<string | null>(null);
+  const [paymentTimeout, setPaymentTimeout] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes in seconds
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -64,46 +66,101 @@ export const Checkout: React.FC = () => {
     }
   }, [items, navigate, orderCreatedId, loading]);
 
-  // Generate FamPay QR Code on mount
+  // Cleanup timeout on unmount
   useEffect(() => {
-    const generateQR = async () => {
-      if (total > 0) {
-        try {
-          const upiId = import.meta.env.VITE_UPI_ID || '8445619079@fam';
-          const response: FamPayOrderResponse = await createFamPayOrder(upiId, total);
-          if (response.status === 'success') {
-            setFampayOrderId(response.data.order_id);
-            setQrCodeUrl(response.data.qr_url);
-          } else {
-            setErrorMsg('Failed to generate payment QR. Please try again.');
-          }
-        } catch (err) {
-          console.error('FamPay QR generation failed:', err);
+    return () => {
+      if (paymentTimeout) clearTimeout(paymentTimeout);
+    };
+  }, [paymentTimeout]);
+
+  // Generate FamPay QR Code after order is placed
+  const generatePaymentQR = async () => {
+    if (total > 0) {
+      try {
+        const upiId = import.meta.env.VITE_UPI_ID || '8445619079@fam';
+        const response: FamPayOrderResponse = await createFamPayOrder(upiId, total);
+        if (response.status === 'success') {
+          setFampayOrderId(response.data.order_id);
+          setQrCodeUrl(response.data.qr_url);
+          // Start payment verification polling
+          startPaymentPolling();
+          // Start 5-minute timeout
+          startPaymentTimeout();
+        } else {
           setErrorMsg('Failed to generate payment QR. Please try again.');
         }
+      } catch (err) {
+        console.error('FamPay QR generation failed:', err);
+        setErrorMsg('Failed to generate payment QR. Please try again.');
       }
-    };
-    generateQR();
-  }, [total]);
+    }
+  };
 
-  // Poll for payment verification
-  useEffect(() => {
-    if (!fampayOrderId || paymentStatus !== 'pending') return;
-
+  const startPaymentPolling = () => {
     const pollInterval = setInterval(async () => {
+      if (!fampayOrderId || paymentStatus !== 'pending') {
+        clearInterval(pollInterval);
+        return;
+      }
+
       try {
         const response: FamPayVerifyResponse = await verifyFamPayOrder(fampayOrderId);
         if (response.status === 'success' && response.data) {
           setPaymentStatus('paid');
           clearInterval(pollInterval);
+          if (paymentTimeout) clearTimeout(paymentTimeout);
+          // Update order status to PAID
+          await updateOrderStatus('PAID');
         }
       } catch (err) {
         console.error('Payment verification failed:', err);
       }
     }, 5000); // Poll every 5 seconds
+  };
 
-    return () => clearInterval(pollInterval);
-  }, [fampayOrderId, paymentStatus]);
+  const startPaymentTimeout = () => {
+    setTimeRemaining(300); // 5 minutes
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handlePaymentTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setPaymentTimeout(timer);
+  };
+
+  const handlePaymentTimeout = async () => {
+    setPaymentStatus('failed');
+    // Cancel order due to payment timeout
+    await updateOrderStatus('CANCELLED');
+  };
+
+  const updateOrderStatus = async (status: 'PAID' | 'CANCELLED') => {
+    if (!orderCreatedId) return;
+    try {
+      await supabase
+        .from('orders')
+        .update({ 
+          status, 
+          payment_status: status === 'PAID' ? 'PAID' : 'FAILED'
+        })
+        .eq('id', orderCreatedId);
+      
+      // If payment successful, update stock
+      if (status === 'PAID') {
+        for (const item of items) {
+          const newStock = Math.max(0, item.product.stock - item.quantity);
+          await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+    }
+  };
 
   const handleVerifyPayment = async () => {
     if (!fampayOrderId) return;
@@ -112,6 +169,8 @@ export const Checkout: React.FC = () => {
       const response: FamPayVerifyResponse = await verifyFamPayOrder(fampayOrderId);
       if (response.status === 'success' && response.data) {
         setPaymentStatus('paid');
+        if (paymentTimeout) clearTimeout(paymentTimeout);
+        await updateOrderStatus('PAID');
       } else {
         setErrorMsg('Payment not yet verified. Please complete the payment and try again.');
       }
@@ -130,10 +189,6 @@ export const Checkout: React.FC = () => {
       navigate('/auth');
       return;
     }
-    if (paymentStatus !== 'paid') {
-      setErrorMsg('Please complete the payment verification before placing the order.');
-      return;
-    }
 
     setLoading(true);
     setErrorMsg('');
@@ -148,7 +203,6 @@ export const Checkout: React.FC = () => {
       state,
       pincode,
       country,
-      fampay_order_id: fampayOrderId,
       item_variants: items.map(item => ({
         product_id: item.product.id,
         selected_variant: item.selectedVariant || null
@@ -166,8 +220,8 @@ export const Checkout: React.FC = () => {
         .insert({
           user_id: user.id,
           total_amount: total,
-          status: 'PAID',
-          payment_status: 'PAID',
+          status: 'PENDING_PAYMENT',
+          payment_status: 'PENDING_PAYMENT',
           shipping_address: shippingAddressJson,
           estimated_delivery_date: estimatedDeliveryDate.toISOString()
         })
@@ -192,20 +246,13 @@ export const Checkout: React.FC = () => {
 
       if (itemsError) throw itemsError;
 
-      // Update stock (best-effort)
-      for (const item of items) {
-        const newStock = Math.max(0, item.product.stock - item.quantity);
-        await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
-      }
-
-      clearCart();
-      localStorage.removeItem('animemaze_applied_coupon');
-      // Delay so confirmation doesn't flash instantly
-      setTimeout(() => {
-        setLoading(false);
-        setOrderCreatedId(orderId);
-        setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
-      }, 2500);
+      // Order created successfully, now generate QR for payment
+      setOrderCreatedId(orderId);
+      setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
+      setLoading(false);
+      
+      // Generate payment QR and start verification
+      await generatePaymentQR();
 
     } catch (supabaseErr: any) {
       console.warn('Supabase order failed, using local order fallback:', supabaseErr);
@@ -217,8 +264,8 @@ export const Checkout: React.FC = () => {
           id: localOrderId,
           user_id: user.id,
           total_amount: total,
-          status: 'PAID',
-          payment_status: 'PAID',
+          status: 'PENDING_PAYMENT',
+          payment_status: 'PENDING_PAYMENT',
           shipping_address: shippingAddressJson,
           estimated_delivery_date: estimatedDeliveryDate.toISOString(),
           items: items.map((item, idx) => ({
@@ -229,22 +276,19 @@ export const Checkout: React.FC = () => {
             price: item.product.price,
             selected_variant: item.selectedVariant || null
           })),
-          created_at: new Date().toISOString(),
-          fampay_order_id: fampayOrderId
+          created_at: new Date().toISOString()
         };
 
         const existingOrders = JSON.parse(localStorage.getItem('animemaze_local_orders') || '[]');
         existingOrders.unshift(localOrder);
         localStorage.setItem('animemaze_local_orders', JSON.stringify(existingOrders));
 
-        clearCart();
-        localStorage.removeItem('animemaze_applied_coupon');
-        // Delay so confirmation doesn't flash instantly
-        setTimeout(() => {
-          setLoading(false);
-          setOrderCreatedId(localOrderId);
-          setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
-        }, 2500);
+        setOrderCreatedId(localOrderId);
+        setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
+        setLoading(false);
+        
+        // Generate payment QR and start verification
+        await generatePaymentQR();
       } catch (localErr) {
         console.error('Local order storage also failed:', localErr);
         setErrorMsg('Could not place order. Please try again.');
@@ -256,32 +300,130 @@ export const Checkout: React.FC = () => {
 
 
   if (orderCreatedId) {
-    const formattedDeliveryDate = orderDeliveryDate 
-      ? new Date(orderDeliveryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-      : null;
+    // Payment Success Screen
+    if (paymentStatus === 'paid') {
+      const formattedDeliveryDate = orderDeliveryDate 
+        ? new Date(orderDeliveryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        : null;
 
-    return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
-        <div className="w-16 h-16 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto text-success">
-          <Check className="h-8 w-8" />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
-        <p className="text-gray-500 text-sm leading-relaxed">
-          Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. Payment has been verified automatically via FamPay. You can track this in your dashboard.
-        </p>
-        {formattedDeliveryDate && (
-          <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
-            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Estimated Delivery</p>
-            <p className="text-lg font-bold text-gray-900">{formattedDeliveryDate}</p>
+      // Clear cart only after successful payment
+      useEffect(() => {
+        clearCart();
+        localStorage.removeItem('animemaze_applied_coupon');
+      }, []);
+
+      return (
+        <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
+          <div className="w-16 h-16 bg-success/10 border border-success/20 rounded-full flex items-center justify-center mx-auto text-success">
+            <Check className="h-8 w-8" />
           </div>
-        )}
-        <div className="pt-4 flex gap-4">
-          <Button fullWidth onClick={() => navigate('/dashboard')}>
-            Go to Dashboard
-          </Button>
-          <Button variant="outline" fullWidth onClick={() => navigate('/shop')}>
-            Continue Shopping
-          </Button>
+          <h2 className="text-2xl font-bold text-gray-900">Order Placed Successfully!</h2>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Your order ID is <strong className="text-gray-900">{orderCreatedId}</strong>. Payment has been verified automatically via FamPay. You can track this in your dashboard.
+          </p>
+          {formattedDeliveryDate && (
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Estimated Delivery</p>
+              <p className="text-lg font-bold text-gray-900">{formattedDeliveryDate}</p>
+            </div>
+          )}
+          <div className="pt-4 flex gap-4">
+            <Button fullWidth onClick={() => navigate('/dashboard')}>
+              Go to Dashboard
+            </Button>
+            <Button variant="outline" fullWidth onClick={() => navigate('/shop')}>
+              Continue Shopping
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Payment Failed Screen
+    if (paymentStatus === 'failed') {
+      return (
+        <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
+          <div className="w-16 h-16 bg-danger/10 border border-danger/20 rounded-full flex items-center justify-center mx-auto text-danger">
+            <X className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Payment Failed</h2>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Your order <strong className="text-gray-900">{orderCreatedId}</strong> has been cancelled due to payment timeout or failure. Please try placing the order again.
+          </p>
+          <div className="pt-4 flex gap-4">
+            <Button fullWidth onClick={() => navigate('/cart')}>
+              Try Again
+            </Button>
+            <Button variant="outline" fullWidth onClick={() => navigate('/shop')}>
+              Continue Shopping
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Payment Pending Screen (QR Code)
+    return (
+      <div className="max-w-md mx-auto px-4 py-10 text-center space-y-6">
+        <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-sm space-y-6">
+          <h2 className="text-xl font-bold text-gray-900">Complete Your Payment</h2>
+          <p className="text-sm text-gray-600">
+            Order ID: <strong className="text-gray-900">{orderCreatedId}</strong>
+          </p>
+          <p className="text-sm text-gray-600">
+            Amount: <strong className="text-secondary text-lg">₹{total}</strong>
+          </p>
+
+          {/* Timer */}
+          <div className={`p-3 rounded-xl border text-center ${
+            timeRemaining <= 60 
+              ? 'bg-danger/10 border-danger/20 text-danger' 
+              : 'bg-warning/10 border-warning/20 text-warning'
+          }`}>
+            <p className="text-xs font-bold uppercase tracking-wider">
+              Payment expires in: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+            </p>
+          </div>
+
+          {/* QR Code */}
+          {qrCodeUrl ? (
+            <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl max-w-[220px] mx-auto border border-gray-200">
+              <img src={qrCodeUrl} alt="UPI QR Code" className="w-full h-auto" />
+              <span className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-wide">
+                Scan using GPay / PhonePe / Paytm
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-primary" />
+            </div>
+          )}
+
+          {/* Payment Status */}
+          <div className="p-3 rounded-xl border text-center bg-warning/10 border-warning/20 text-warning">
+            <p className="text-xs font-bold uppercase tracking-wider">
+              ⏳ Awaiting Payment
+            </p>
+            <p className="text-[10px] mt-1 opacity-75">Auto-verifying every 5 seconds...</p>
+          </div>
+
+          {paymentStatus === 'pending' && (
+            <Button
+              type="button"
+              variant="outline"
+              fullWidth
+              size="sm"
+              onClick={handleVerifyPayment}
+              loading={isVerifyingPayment}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Check Payment Status
+            </Button>
+          )}
+
+          <p className="text-xs text-gray-500">
+            Please complete the payment within 5 minutes. Your order will be cancelled automatically if payment is not received.
+          </p>
         </div>
       </div>
     );
@@ -432,66 +574,13 @@ export const Checkout: React.FC = () => {
               <span>2. UPI Payment</span>
             </h2>
 
-            {/* instructions */}
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 space-y-2">
-              <p className="font-bold text-gray-900">Instructions:</p>
-              <ol className="list-decimal pl-4 space-y-1">
-                <li>Scan the QR code below using any UPI app.</li>
-                <li>Pay the exact amount: <strong className="text-gray-900">₹{total}</strong></li>
-                <li>Payment will be verified automatically within 30 seconds.</li>
-                <li>Once verified, click "Place Order" to complete.</li>
-              </ol>
-            </div>
-
-            {/* QR display */}
-            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[220px] mx-auto border border-gray-200">
-              {qrCodeUrl ? (
-                <img src={qrCodeUrl} alt="UPI QR Code" className="w-full h-auto" />
-              ) : (
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-primary" />
-              )}
-              <span className="text-[10px] text-gray-500 font-bold mt-2 uppercase tracking-wide">
-                Scan using GPay / PhonePe / Paytm
-              </span>
-            </div>
-
-            {/* Payment Status */}
-            <div className={`p-3 rounded-xl border text-center ${
-              paymentStatus === 'paid' 
-                ? 'bg-success/10 border-success/20 text-success' 
-                : 'bg-warning/10 border-warning/20 text-warning'
-            }`}>
-              <p className="text-xs font-bold uppercase tracking-wider">
-                {paymentStatus === 'paid' ? '✓ Payment Verified' : '⏳ Awaiting Payment'}
-              </p>
-              {paymentStatus === 'pending' && (
-                <p className="text-[10px] mt-1 opacity-75">Auto-verifying every 5 seconds...</p>
-              )}
-            </div>
-
-            {paymentStatus === 'pending' && (
-              <Button
-                type="button"
-                variant="outline"
-                fullWidth
-                size="sm"
-                onClick={handleVerifyPayment}
-                loading={isVerifyingPayment}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Check Payment Status
-              </Button>
-            )}
-
-
             <Button 
               type="submit" 
               fullWidth 
               size="lg" 
               loading={loading}
-              disabled={paymentStatus !== 'paid'}
             >
-              {paymentStatus === 'paid' ? 'Place Order' : 'Complete Payment First'}
+              Place Order
             </Button>
           </div>
         </div>

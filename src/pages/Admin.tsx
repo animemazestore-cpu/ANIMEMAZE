@@ -841,13 +841,13 @@ export const Admin: React.FC = () => {
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
               <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
                 <CreditCard className="h-5.5 w-5.5 text-secondary" />
-                <span>FamPay Payment Verification</span>
+                <span>Order Status Management</span>
               </h2>
 
               <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
                 <p className="text-sm text-gray-700">
-                  <strong className="text-primary">Note:</strong> Payments are now automatically verified via FamPay API. 
-                  Manual verification is no longer required. This panel shows recent paid orders for reference.
+                  <strong className="text-primary">Note:</strong> Orders are created with PENDING_PAYMENT status. 
+                  Payments are automatically verified via FamPay API. Orders auto-cancel after 5 minutes if payment fails.
                 </p>
               </div>
 
@@ -858,21 +858,21 @@ export const Admin: React.FC = () => {
                       <th className="px-6 py-4">Order ID</th>
                       <th className="px-6 py-4">Customer Details</th>
                       <th className="px-6 py-4">Amount</th>
-                      <th className="px-6 py-4 text-center">FamPay Order ID</th>
+                      <th className="px-6 py-4 text-center">Order Status</th>
                       <th className="px-6 py-4 text-center">Payment Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {orders.filter(o => o.payment_status === 'PAID').length === 0 ? (
+                    {orders.filter(o => ['PENDING_PAYMENT', 'PAID', 'CANCELLED'].includes(o.status)).length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500 italic">
-                          No paid orders found.
+                          No recent orders found.
                         </td>
                       </tr>
                     ) : (
                       orders
-                        .filter(o => o.payment_status === 'PAID')
-                        .slice(0, 10)
+                        .filter(o => ['PENDING_PAYMENT', 'PAID', 'CANCELLED'].includes(o.status))
+                        .slice(0, 15)
                         .map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 font-bold text-xs truncate max-w-[120px]">{order.id}</td>
@@ -880,26 +880,40 @@ export const Admin: React.FC = () => {
                               <div className="space-y-0.5">
                                 <p className="font-bold text-gray-900">{order.shipping_address?.fullName}</p>
                                 <p className="text-xs text-gray-500">{order.shipping_address?.phone}</p>
-                                <p className="text-[10px] text-gray-400">{order.shipping_address?.email}</p>
                                 <p className="text-xs text-gray-600 truncate">{order.shipping_address?.address}</p>
-                                <p className="text-xs text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state} - {order.shipping_address?.pincode}</p>
+                                <p className="text-xs text-gray-500">{order.shipping_address?.city}, {order.shipping_address?.state}</p>
                               </div>
                             </td>
                             <td className="px-6 py-4 font-extrabold text-gray-900">₹{order.total_amount}</td>
                             <td className="px-6 py-4 text-center">
-                              {order.shipping_address?.fampay_order_id ? (
-                                <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
-                                  {order.shipping_address.fampay_order_id}
+                              {order.status === 'PENDING_PAYMENT' && (
+                                <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-warning/10 border border-warning/20 text-warning rounded-lg text-xs font-semibold">
+                                  <span>⏳ Pending Payment</span>
                                 </span>
-                              ) : (
-                                <span className="text-xs text-gray-400">N/A</span>
+                              )}
+                              {order.status === 'PAID' && (
+                                <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-success/10 border border-success/20 text-success rounded-lg text-xs font-semibold">
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Paid</span>
+                                </span>
+                              )}
+                              {order.status === 'CANCELLED' && (
+                                <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-danger/10 border border-danger/20 text-danger rounded-lg text-xs font-semibold">
+                                  <X className="h-3.5 w-3.5" />
+                                  <span>Cancelled</span>
+                                </span>
                               )}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-success/10 border border-success/20 text-success rounded-lg text-xs font-semibold">
-                                <Check className="h-3.5 w-3.5" />
-                                <span>Auto-Verified</span>
-                              </span>
+                              {order.payment_status === 'PENDING_PAYMENT' && (
+                                <span className="text-xs text-warning font-medium">Awaiting Payment</span>
+                              )}
+                              {order.payment_status === 'PAID' && (
+                                <span className="text-xs text-success font-medium">Paid</span>
+                              )}
+                              {order.payment_status === 'FAILED' && (
+                                <span className="text-xs text-danger font-medium">Failed</span>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1219,7 +1233,7 @@ export const Admin: React.FC = () => {
                         <td className="px-6 py-4 text-xs font-bold">
                           <span className={`px-2 py-0.5 border rounded uppercase ${
                             order.payment_status === 'PAID' ? 'text-success bg-success/10 border-success/20' :
-                            order.payment_status === 'REJECTED' ? 'text-danger bg-danger/10 border-danger/20' :
+                            order.payment_status === 'FAILED' ? 'text-danger bg-danger/10 border-danger/20' :
                             'text-amber-500 bg-amber-500/10 border-amber-500/20'
                           }`}>
                             {order.payment_status}
