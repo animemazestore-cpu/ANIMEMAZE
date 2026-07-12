@@ -63,10 +63,12 @@ export const Checkout: React.FC = () => {
   const fampayOrderIdRef = useRef<string | null>(null);
   const paymentStatusRef = useRef<'pending' | 'paid' | 'failed'>('pending');
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const orderCreatedIdRef = useRef<string | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => { fampayOrderIdRef.current = fampayOrderId; }, [fampayOrderId]);
   useEffect(() => { paymentStatusRef.current = paymentStatus; }, [paymentStatus]);
+  useEffect(() => { orderCreatedIdRef.current = orderCreatedId; }, [orderCreatedId]);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -163,16 +165,27 @@ export const Checkout: React.FC = () => {
     await updateOrderStatus('CANCELLED');
   };
 
-  const updateOrderStatus = async (status: 'PAID' | 'CANCELLED') => {
-    if (!orderCreatedId) return;
+  const updateOrderStatus = async (status: 'PAID' | 'CANCELLED', explicitOrderId?: string) => {
+    // Use explicitly passed ID or fall back to the ref (always fresh, avoids stale closure)
+    const targetId = explicitOrderId || orderCreatedIdRef.current;
+    if (!targetId) {
+      console.warn('updateOrderStatus: no order ID available, skipping update');
+      return;
+    }
     try {
-      await supabase
+      const { error } = await supabase
         .from('orders')
         .update({
           status,
           payment_status: status === 'PAID' ? 'PAID' : 'FAILED'
         })
-        .eq('id', orderCreatedId);
+        .eq('id', targetId);
+
+      if (error) {
+        console.error('Supabase order update error:', error.message, error.details, error.hint);
+      } else {
+        console.log('Order status updated successfully:', targetId, '->', status);
+      }
 
       // If payment successful, update stock
       if (status === 'PAID') {
@@ -271,6 +284,7 @@ export const Checkout: React.FC = () => {
       if (itemsError) throw itemsError;
 
       // Order created successfully, now generate QR for payment
+      orderCreatedIdRef.current = orderId; // Set ref immediately so polling closure has fresh ID
       setOrderCreatedId(orderId);
       setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
       setLoading(false);
@@ -307,6 +321,7 @@ export const Checkout: React.FC = () => {
         existingOrders.unshift(localOrder);
         localStorage.setItem('animemaze_local_orders', JSON.stringify(existingOrders));
 
+        orderCreatedIdRef.current = localOrderId; // Set ref immediately so polling closure has fresh ID
         setOrderCreatedId(localOrderId);
         setOrderDeliveryDate(estimatedDeliveryDate.toISOString());
         setLoading(false);
