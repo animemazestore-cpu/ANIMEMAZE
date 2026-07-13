@@ -64,6 +64,8 @@ export const Checkout: React.FC = () => {
   const paymentStatusRef = useRef<'pending' | 'paid' | 'failed'>('pending');
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const orderCreatedIdRef = useRef<string | null>(null);
+  // Timestamp of when the QR was generated — used to reject old payment emails
+  const orderCreatedAtRef = useRef<Date | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => { fampayOrderIdRef.current = fampayOrderId; }, [fampayOrderId]);
@@ -100,6 +102,8 @@ export const Checkout: React.FC = () => {
         const response: FamPayOrderResponse = await createFamPayOrder(upiId, total);
         if (response.status === 'success') {
           const orderId = response.data.order_id;
+          // Record the exact moment this QR was generated — used to reject stale Gmail emails
+          orderCreatedAtRef.current = new Date();
           fampayOrderIdRef.current = orderId; // set ref immediately before state update
           setFampayOrderId(orderId);
           setQrCodeUrl(response.data.qr_url);
@@ -121,27 +125,58 @@ export const Checkout: React.FC = () => {
     // Clear any previous poll interval
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
-    const pollInterval = setInterval(async () => {
-      // Read latest status via ref — avoids stale closure
-      if (paymentStatusRef.current !== 'pending') {
-        clearInterval(pollInterval);
-        return;
-      }
-
-      try {
-        const response: FamPayVerifyResponse = await verifyFamPayOrder(orderId);
-        if (response.status === 'success' && response.data) {
+    // Wait 10 seconds before the first poll so old Gmail emails can't fire instantly
+    const startPolling = () => {
+      const pollInterval = setInterval(async () => {
+        // Read latest status via ref — avoids stale closure
+        if (paymentStatusRef.current !== 'pending') {
           clearInterval(pollInterval);
-          setPaymentStatus('paid');
-          // Update order status to PAID
-          await updateOrderStatus('PAID');
+          return;
         }
-      } catch (err) {
-        console.error('Payment verification failed:', err);
-      }
-    }, 5000); // Poll every 5 seconds
 
-    pollIntervalRef.current = pollInterval;
+        try {
+          const response: FamPayVerifyResponse = await verifyFamPayOrder(orderId);
+          if (response.status === 'success' && response.data) {
+            // ── Anti-false-positive guard ───────────────────────────────────────
+            // TrustUPI scans Gmail for ANY matching payment email.
+            // We MUST ensure the payment timestamp is AFTER we generated the QR.
+            // If payment_time_ist is missing or before QR creation, reject it.
+            const qrCreatedAt = orderCreatedAtRef.current;
+            if (qrCreatedAt && response.data.payment_time_ist) {
+              // payment_time_ist format: "13-07-2026 10:32:15" (IST)
+              // Parse it (IST = UTC+5:30)
+              const [datePart, timePart] = response.data.payment_time_ist.split(' ');
+              const [day, month, year] = datePart.split('-').map(Number);
+              const [hours, minutes, seconds] = timePart.split(':').map(Number);
+              // Build UTC date: IST is UTC+5:30, subtract 5h30m
+              const paymentDateUTC = new Date(Date.UTC(year, month - 1, day, hours - 5, minutes - 30, seconds));
+              const qrCreatedUTC = new Date(qrCreatedAt.getTime());
+
+              console.log('Payment time (UTC):', paymentDateUTC.toISOString());
+              console.log('QR created (UTC):', qrCreatedUTC.toISOString());
+
+              if (paymentDateUTC <= qrCreatedUTC) {
+                console.warn('⚠️ Rejected stale payment email — payment_time_ist is before QR was generated. Ignoring.');
+                return; // Skip — old Gmail email, not a new payment
+              }
+            }
+            // ── End guard ──────────────────────────────────────────────────────
+
+            clearInterval(pollInterval);
+            setPaymentStatus('paid');
+            // Update order status to PAID
+            await updateOrderStatus('PAID');
+          }
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+        }
+      }, 5000); // Poll every 5 seconds
+
+      pollIntervalRef.current = pollInterval;
+    };
+
+    // Delay first poll by 10 seconds
+    setTimeout(startPolling, 10000);
   };
 
   const startPaymentTimeout = () => {
