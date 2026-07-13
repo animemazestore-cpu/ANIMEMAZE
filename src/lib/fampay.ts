@@ -31,20 +31,20 @@ export interface FamPayVerifyResponse {
 export async function createFamPayOrder(upiId: string, amount: number): Promise<FamPayOrderResponse> {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}/fampay-qr?upi=${encodeURIComponent(upiId)}&amount=${amount}`;
-  
+
   console.log('FamPay API Request URL:', url);
-  
+
   try {
     const response = await fetch(url);
     console.log('FamPay API Response Status:', response.status);
-    
+
     const data = await response.json();
     console.log('FamPay API Response Data:', data);
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}: ${JSON.stringify(data)}`);
     }
-    
+
     return data;
   } catch (error) {
     console.error('FamPay API Error:', error);
@@ -55,20 +55,20 @@ export async function createFamPayOrder(upiId: string, amount: number): Promise<
 export async function verifyFamPayOrder(orderId: string): Promise<FamPayVerifyResponse> {
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}/fampay-verify?order_id=${encodeURIComponent(orderId)}`;
-  
+
   console.log('FamPay Verify Request URL:', url);
-  
+
   try {
     const response = await fetch(url);
     console.log('FamPay Verify Response Status:', response.status);
-    
+
     const data = await response.json();
     console.log('FamPay Verify Response Data:', data);
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}: ${JSON.stringify(data)}`);
     }
-    
+
     return data;
   } catch (error) {
     console.error('FamPay Verify API Error:', error);

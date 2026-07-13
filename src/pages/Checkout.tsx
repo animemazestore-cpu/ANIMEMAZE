@@ -408,8 +408,8 @@ export const Checkout: React.FC = () => {
 
           {/* Timer */}
           <div className={`p-3 rounded-xl border text-center ${timeRemaining <= 60
-              ? 'bg-danger/10 border-danger/20 text-danger'
-              : 'bg-warning/10 border-warning/20 text-warning'
+            ? 'bg-danger/10 border-danger/20 text-danger'
+            : 'bg-warning/10 border-warning/20 text-warning'
             }`}>
             <p className="text-xs font-bold uppercase tracking-wider">
               Payment expires in: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}

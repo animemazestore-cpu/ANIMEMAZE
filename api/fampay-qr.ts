@@ -2,8 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
-const FAMPAY_API_KEY = 'fmpay_c0deedbc77d3d29dfbac858498bfd10d262a48a2';
-const FAMPAY_BASE_URL = 'https://py.freepanel.in';
+const FAMPAY_API_KEY = 'fmpay_35d11dbd747686931816a3cab1bb67b1b2e92892';
+const FAMPAY_BASE_URL = 'https://fam.trustupi.site';
 
 export default async function handler(req: Request) {
   // Enable CORS
@@ -19,8 +19,8 @@ export default async function handler(req: Request) {
   }
 
   if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { 
-      status: 405, 
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
@@ -31,8 +31,8 @@ export default async function handler(req: Request) {
     const amount = url.searchParams.get('amount');
 
     if (!upi || !amount) {
-      return new Response(JSON.stringify({ error: 'Missing required parameters: upi and amount' }), { 
-        status: 400, 
+      return new Response(JSON.stringify({ error: 'Missing required parameters: upi and amount' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -43,20 +43,20 @@ export default async function handler(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify(data), { 
-        status: response.status, 
+      return new Response(JSON.stringify(data), {
+        status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    return new Response(JSON.stringify(data), { 
-      status: 200, 
+    return new Response(JSON.stringify(data), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('FamPay QR Proxy Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { 
-      status: 500, 
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
