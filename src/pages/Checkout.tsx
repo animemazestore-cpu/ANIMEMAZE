@@ -50,6 +50,7 @@ export const Checkout: React.FC = () => {
   // FamPay Payment State
   const [fampayOrderId, setFampayOrderId] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [upiUri, setUpiUri] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -107,6 +108,11 @@ export const Checkout: React.FC = () => {
           fampayOrderIdRef.current = orderId;
           setFampayOrderId(orderId);
           setQrCodeUrl(response.data.qr_url);
+
+          // Build UPI deep link for direct app opening
+          const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=AnimeMaze&am=${total}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent('AnimeMaze Order')}`;
+          setUpiUri(upiUri);
+
           startPaymentPolling(orderId);
           startPaymentTimeout();
         } else {
@@ -480,6 +486,43 @@ export const Checkout: React.FC = () => {
             </p>
             <p className="text-[10px] mt-1 opacity-75">Auto-verifying every 5 seconds...</p>
           </div>
+
+          {/* UPI App Buttons */}
+          {upiUri && paymentStatus === 'pending' && (
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              <a
+                href={upiUri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
+                onClick={(e) => {
+                  // Fallback to Play Store if app not installed (handled by browser)
+                  console.log('Opening GPay...');
+                }}
+              >
+                <img src="/img/gpay-icon.png" alt="Google Pay" className="h-5 w-5" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'inline'; }} />
+                <span className="hidden">GPay</span>
+              </a>
+              <a
+                href={upiUri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                <img src="/img/phonepe-icon.png" alt="PhonePe" className="h-5 w-5" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'inline'; }} />
+                <span className="hidden">PhonePe</span>
+              </a>
+              <a
+                href={upiUri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                <img src="/img/fampay-icon.png" alt="FamPay" className="h-5 w-5" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'inline'; }} />
+                <span className="hidden">FamPay</span>
+              </a>
+            </div>
+          )}
 
           {paymentStatus === 'pending' && (
             <Button
