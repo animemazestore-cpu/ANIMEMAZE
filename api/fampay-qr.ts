@@ -2,8 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
-const FAMPAY_API_KEY = 'fmpay_35d11dbd747686931816a3cab1bb67b1b2e92892';
-const FAMPAY_BASE_URL = 'https://fam.trustupi.site';
+const FAMPAY_API_KEY = 'fmpay_c0deedbc77d3d29dfbac858498bfd10d262a48a2';
+const FAMPAY_BASE_URL = 'https://py.freepanel.in';
 
 export default async function handler(req: Request) {
   // Enable CORS
